@@ -5,12 +5,13 @@ import crypto from 'crypto'
 // Webhook universel — reçoit les événements de toutes les caisses
 // URL : https://restoflow.fr/api/caisse/webhook?org=ORGANIZATION_ID
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
-// Normalisation événement selon source
 function normaliserEvent(source: string, payload: any) {
   switch (source) {
     case '6xpos':
@@ -91,11 +92,11 @@ function mapPaiement(type: string): string | null {
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = getSupabase()
     const orgId = req.nextUrl.searchParams.get('org')
     const source = req.nextUrl.searchParams.get('source') || 'manuel'
     if (!orgId) return NextResponse.json({ error: 'org manquant' }, { status: 400 })
 
-    // Vérifier webhook secret
     const { data: config } = await supabase
       .from('config_caisse')
       .select('webhook_secret, seuil_alerte_annulation')
@@ -127,7 +128,6 @@ export async function POST(req: NextRequest) {
     const { error } = await supabase.from('events_caisse').insert(toInsert)
     if (error) throw new Error(error.message)
 
-    // Mise à jour dernière sync
     await supabase.from('config_caisse')
       .update({ derniere_sync: new Date().toISOString(), statut_connexion: 'connecte' })
       .eq('organization_id', orgId)
