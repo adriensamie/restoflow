@@ -1,8 +1,8 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
-import { InventaireClient } from '@/components/inventaire/inventaire-client'
+import { CaveClient } from '@/components/cave/cave-client'
 
-export default async function InventairePage() {
+export default async function CavePage() {
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
 
@@ -10,32 +10,22 @@ export default async function InventairePage() {
     .from('organizations').select('id').eq('clerk_org_id', orgId).single()
   const orgUUID = org?.id
 
-  const [{ data: produits }, { data: vins }, { data: sessions }] = await Promise.all([
-    (supabase as any)
-      .from('produits')
-      .select('id, nom, categorie, unite, stock_actuel')
-      .eq('actif', true)
-      .eq('organization_id', orgUUID)
-      .order('categorie').order('nom'),
-    (supabase as any)
-      .from('vins')
-      .select('id, nom, appellation, categorie, stock_bouteilles')
-      .eq('actif', true)
-      .eq('organization_id', orgUUID)
-      .order('categorie').order('nom'),
-    (supabase as any)
-      .from('sessions_inventaire')
-      .select('*, lignes_inventaire(count)')
-      .eq('organization_id', orgUUID)
-      .order('created_at', { ascending: false })
-      .limit(10),
-  ])
+  const { data: vins } = await (supabase as any)
+    .from('vins')
+    .select('id, nom, appellation, categorie, zone, prix_achat_ht, prix_vente_ttc, prix_verre_ttc, contenance_verre, vendu_au_verre, stock_bouteilles, seuil_alerte, fournisseurs(nom)')
+    .eq('actif', true)
+    .eq('organization_id', orgUUID)
+    .order('categorie')
+    .order('nom')
 
-  return (
-    <InventaireClient
-      produits={produits ?? []}
-      vins={vins ?? []}
-      sessions={sessions ?? []}
-    />
-  )
+  const vinsList = vins ?? []
+
+  const stats = {
+    totalRefs: vinsList.length,
+    totalBouteilles: vinsList.reduce((sum: number, v: any) => sum + (v.stock_bouteilles || 0), 0),
+    valeurTotale: vinsList.reduce((sum: number, v: any) => sum + ((v.prix_achat_ht || 0) * (v.stock_bouteilles || 0)), 0),
+    alertes: vinsList.filter((v: any) => v.stock_bouteilles <= v.seuil_alerte).length,
+  }
+
+  return <CaveClient vins={vinsList} stats={stats} />
 }
