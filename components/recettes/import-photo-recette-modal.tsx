@@ -49,17 +49,9 @@ export function ImportPhotoRecetteModal({ onClose, onSuccess }: { onClose: () =>
       try {
         await creerRecette({
           nom: data.recette.nom,
-          categorie: data.recette.categorie,
+          type: data.recette.categorie || 'plat',
           nb_portions: data.recette.nb_portions || 1,
-          temps_preparation: data.recette.temps_preparation,
-          temps_cuisson: data.recette.temps_cuisson,
           description: data.recette.description,
-          ingredients: (data.ingredients || []).map((ing: any) => ({
-            produit_id: null,
-            nom_libre: ing.nom,
-            quantite: ing.quantite,
-            unite: ing.unite,
-          })),
         })
         setStep('import')
         setTimeout(onSuccess, 1000)
@@ -130,7 +122,6 @@ export function ImportPhotoRecetteModal({ onClose, onSuccess }: { onClose: () =>
 
           {step === 'review' && data && (
             <div className="space-y-5">
-              {/* Infos recette */}
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#3b5280' }}>Informations recette</p>
                 <div className="grid grid-cols-2 gap-3">
@@ -139,7 +130,7 @@ export function ImportPhotoRecetteModal({ onClose, onSuccess }: { onClose: () =>
                     <input value={data.recette?.nom || ''} onChange={e => setData((d: any) => ({ ...d, recette: { ...d.recette, nom: e.target.value } }))} style={inputStyle} />
                   </div>
                   <div>
-                    <label className="text-xs block mb-1" style={{ color: '#4a6fa5' }}>Catégorie</label>
+                    <label className="text-xs block mb-1" style={{ color: '#4a6fa5' }}>Type</label>
                     <select value={data.recette?.categorie || 'plat'} onChange={e => setData((d: any) => ({ ...d, recette: { ...d.recette, categorie: e.target.value } }))} style={inputStyle}>
                       {['entree','plat','dessert','boisson','sauce','autre'].map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
@@ -155,7 +146,6 @@ export function ImportPhotoRecetteModal({ onClose, onSuccess }: { onClose: () =>
                 </div>
               </div>
 
-              {/* Ingrédients */}
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#3b5280' }}>
                   {data.ingredients?.length || 0} ingrédient(s) détecté(s)
