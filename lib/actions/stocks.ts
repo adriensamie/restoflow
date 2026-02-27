@@ -98,7 +98,8 @@ export async function enregistrerInventaire(
   const { error } = await (supabase as any).from('mouvements_stock').insert(inserts)
   if (error) throw new Error(error.message)
   revalidatePath('/stocks')
-  export async function supprimerProduit(id: string) {
+}
+export async function supprimerProduit(id: string) {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)

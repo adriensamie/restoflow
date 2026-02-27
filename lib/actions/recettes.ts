@@ -121,7 +121,8 @@ export async function archiverRecette(id: string) {
     .from('recettes').update({ actif: false }).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/recettes')
-  export async function supprimerRecette(id: string) {
+}
+export async function supprimerRecette(id: string) {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   // Supprimer d'abord les ingrédients
