@@ -44,7 +44,8 @@ Retourne UNIQUEMENT le JSON, sans texte avant ou après.`
       }]
     })
 
-    const text = response.content.find((b: any) => b.type === 'text')?.text || ''
+    const textBlock = response.content.find((b: any) => b.type === 'text')
+    const text = (textBlock && 'text' in textBlock ? textBlock.text : '') || ''
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('Pas de JSON dans la réponse')
     const data = JSON.parse(jsonMatch[0])
