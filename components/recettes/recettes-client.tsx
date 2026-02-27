@@ -1,9 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, UtensilsCrossed, Sparkles, TrendingUp, AlertTriangle, Search } from 'lucide-react'
+import { Plus, UtensilsCrossed, Sparkles, Camera, Search } from 'lucide-react'
 import { RecetteModal } from './recette-modal'
 import { AnalyserFicheModal } from './analyser-fiche-modal'
+import { ImportPhotoRecetteModal } from './import-photo-recette-modal'
+import { useRouter } from 'next/navigation'
 
 const TYPE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   entree:       { label: 'Entrée',         color: '#60a5fa', bg: '#0a1f3d' },
@@ -14,14 +16,6 @@ const TYPE_CONFIG: Record<string, { label: string; color: string; bg: string }> 
   garniture:    { label: 'Garniture',      color: '#a5b4fc', bg: '#0a0a1a' },
   cocktail:     { label: 'Cocktail',       color: '#34d399', bg: '#051a10' },
   menu:         { label: 'Menu',           color: '#c4b5fd', bg: '#0f051a' },
-}
-
-const ALLERGENES_LABELS: Record<string, string> = {
-  gluten: 'Gluten', crustaces: 'Crustacés', oeufs: 'Œufs',
-  poissons: 'Poissons', arachides: 'Arachides', soja: 'Soja',
-  lait: 'Lait', fruits_a_coque: 'Fruits à coque', celeri: 'Céleri',
-  moutarde: 'Moutarde', graines_sesame: 'Sésame', sulfites: 'Sulfites',
-  lupin: 'Lupin', mollusques: 'Mollusques',
 }
 
 interface Recette {
@@ -40,10 +34,12 @@ export function RecettesClient({ recettes, produits, vins }: {
 }) {
   const [showModal, setShowModal] = useState(false)
   const [showFiche, setShowFiche] = useState(false)
+  const [showImportPhoto, setShowImportPhoto] = useState(false)
   const [editRecette, setEditRecette] = useState<Recette | null>(null)
   const [filtreType, setFiltreType] = useState('tous')
   const [recherche, setRecherche] = useState('')
   const [fichePreRemplie, setFichePreRemplie] = useState<any>(null)
+  const router = useRouter()
 
   const recettesFiltrees = recettes.filter(r => {
     if (filtreType !== 'tous' && r.type !== filtreType) return false
@@ -84,6 +80,11 @@ export function RecettesClient({ recettes, produits, vins }: {
           </p>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => setShowImportPhoto(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+            style={{ background: '#0a1f3d', border: '1px solid #1e3a7a', color: '#60a5fa' }}>
+            <Camera size={15} />Import photo
+          </button>
           <button onClick={() => setShowFiche(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
             style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white' }}>
@@ -145,7 +146,6 @@ export function RecettesClient({ recettes, produits, vins }: {
             <div key={r.id} className="rounded-xl p-4 cursor-pointer hover:border-blue-500 transition-all"
               style={{ background: '#0d1526', border: '1px solid #1e2d4a' }}
               onClick={() => setEditRecette(r)}>
-              {/* Header card */}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
@@ -167,7 +167,6 @@ export function RecettesClient({ recettes, produits, vins }: {
                 </div>
               </div>
 
-              {/* KPIs */}
               <div className="grid grid-cols-3 gap-2 mb-3">
                 <div className="text-center p-2 rounded-lg" style={{ background: '#0a1120' }}>
                   <p className="text-xs" style={{ color: '#2d4a7a' }}>Coût/portion</p>
@@ -189,7 +188,6 @@ export function RecettesClient({ recettes, produits, vins }: {
                 </div>
               </div>
 
-              {/* Prix vente + allergènes */}
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold" style={{ color: '#4ade80' }}>
                   {r.prix_vente_ttc ? `${r.prix_vente_ttc.toFixed(2)} €` : 'Prix non défini'}
@@ -224,6 +222,12 @@ export function RecettesClient({ recettes, produits, vins }: {
         <AnalyserFicheModal
           onResultat={handleFicheResultat}
           onClose={() => setShowFiche(false)}
+        />
+      )}
+      {showImportPhoto && (
+        <ImportPhotoRecetteModal
+          onClose={() => setShowImportPhoto(false)}
+          onSuccess={() => { setShowImportPhoto(false); router.refresh() }}
         />
       )}
     </div>

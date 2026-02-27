@@ -121,4 +121,21 @@ export async function archiverRecette(id: string) {
     .from('recettes').update({ actif: false }).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/recettes')
+  export async function supprimerRecette(id: string) {
+  const supabase = await createServerSupabaseClient()
+  const organization_id = await getOrgUUID()
+  // Supprimer d'abord les ingrédients
+  await (supabase as any)
+    .from('recette_ingredients')
+    .delete()
+    .eq('recette_id', id)
+    .eq('organization_id', organization_id)
+  // Puis la recette
+  const { error } = await (supabase as any)
+    .from('recettes')
+    .delete()
+    .eq('id', id)
+    .eq('organization_id', organization_id)
+  if (error) throw new Error(error.message)
+  revalidatePath('/recettes')
 }

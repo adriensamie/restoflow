@@ -179,4 +179,14 @@ export async function receptionnerLivraison(
   })
 
   return { statut, ecarts }
+  export async function supprimerFournisseur(id: string) {
+  const supabase = await createServerSupabaseClient()
+  const organization_id = await getOrgUUID()
+  const { error } = await (supabase as any)
+    .from('fournisseurs')
+    .delete()
+    .eq('id', id)
+    .eq('organization_id', organization_id)
+  if (error) throw new Error(error.message)
+  revalidatePath('/fournisseurs')
 }

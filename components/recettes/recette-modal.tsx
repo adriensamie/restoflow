@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { X, Plus, Trash2, UtensilsCrossed, RefreshCw } from 'lucide-react'
-import { creerRecette, modifierRecette, ajouterIngredient, supprimerIngredient } from '@/lib/actions/recettes'
+import { useState } from 'react'
+import { X, Plus, Trash2, UtensilsCrossed } from 'lucide-react'
+import { creerRecette, modifierRecette, ajouterIngredient, supprimerIngredient, supprimerRecette } from '@/lib/actions/recettes'
 
 const TYPES = [
   { value: 'entree', label: 'Entrée' }, { value: 'plat', label: 'Plat' },
@@ -34,6 +34,7 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
   const [onglet, setOnglet] = useState<'infos' | 'ingredients' | 'allergenes'>('infos')
   const [recetteId, setRecetteId] = useState<string | null>(recette?.id ?? null)
   const [ingredients, setIngredients] = useState<any[]>(recette?.recette_ingredients ?? [])
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [form, setForm] = useState({
     nom: preRempli?.nom ?? recette?.nom ?? '',
     type: preRempli?.type ?? recette?.type ?? 'plat',
@@ -47,16 +48,13 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
   const [error, setError] = useState('')
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
 
-  // Calcul marge live
-  const coutIngredients = ingredients.reduce((acc: number, i: any) =>
-    acc + (i.quantite * (i.cout_unitaire || 0)), 0)
+  const coutIngredients = ingredients.reduce((acc: number, i: any) => acc + (i.quantite * (i.cout_unitaire || 0)), 0)
   const ficelles = parseFloat(form.pourcentage_ficelles) || 3
   const coutTotal = coutIngredients * (1 + ficelles / 100)
   const coutPortion = coutTotal / (parseInt(form.nb_portions) || 1)
   const prixVente = parseFloat(form.prix_vente_ttc)
   const prixHT = prixVente / 1.1
   const foodCost = prixHT > 0 ? Math.round((coutPortion / prixHT) * 1000) / 10 : null
-  const marge = prixHT > 0 ? Math.round((1 - coutPortion / prixHT) * 1000) / 10 : null
   const coeff = coutPortion > 0 ? Math.round((prixVente / coutPortion) * 10) / 10 : null
 
   const foodCostColor = (fc: number | null) => {
@@ -88,7 +86,7 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
       }
       setError('')
       setOnglet('ingredients')
-    } catch (e) { setError(e instanceof Error ? e.message : 'Erreur lors de la sauvegarde') }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Erreur') }
     finally { setLoading(false) }
   }
 
@@ -97,10 +95,7 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
     try {
       const produit = produits.find(p => p.id === newIngr.produit_id)
       const vin = vins.find(v => v.id === newIngr.vin_id)
-      const coutUnitaire = produit?.prix_unitaire_ht
-        ? produit.prix_unitaire_ht / 1000 // prix au gramme si en kg
-        : vin?.prix_achat_ht ?? 0
-
+      const coutUnitaire = produit?.prix_unitaire_ht ? produit.prix_unitaire_ht / 1000 : vin?.prix_achat_ht ?? 0
       await ajouterIngredient({
         recette_id: recetteId,
         produit_id: newIngr.produit_id || undefined,
@@ -110,17 +105,14 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
         cout_unitaire: coutUnitaire,
       })
       setNewIngr({ produit_id: '', vin_id: '', quantite: '', unite: 'g' })
-      setError('')
-      // Refresh local
-      const nom = produit?.nom ?? vin?.nom ?? '?'
       setIngredients(prev => [...prev, {
-        id: Date.now().toString(), nom,
-        quantite: parseFloat(newIngr.quantite), unite: newIngr.unite,
+        id: Date.now().toString(),
+        nom: produit?.nom ?? vin?.nom ?? '?',
+        quantite: parseFloat(newIngr.quantite),
+        unite: newIngr.unite,
         cout_unitaire: coutUnitaire,
       }])
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur lors de l'ajout")
-    }
+    } catch (e) { setError(e instanceof Error ? e.message : "Erreur") }
   }
 
   const handleRemoveIngredient = async (id: string) => {
@@ -128,9 +120,17 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
     try {
       await supprimerIngredient(id, recetteId)
       setIngredients(prev => prev.filter(i => i.id !== id))
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur lors de la suppression')
-    }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Erreur') }
+  }
+
+  const handleDeleteRecette = async () => {
+    if (!recetteId) return
+    setLoading(true)
+    try {
+      await supprimerRecette(recetteId)
+      onClose()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Erreur') }
+    finally { setLoading(false) }
   }
 
   const inputStyle = {
@@ -140,14 +140,11 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.8)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)' }}>
       <div className="w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col"
         style={{ background: '#0d1526', border: '1px solid #1e2d4a', maxHeight: '90vh' }}>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4"
-          style={{ borderBottom: '1px solid #1e2d4a' }}>
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid #1e2d4a' }}>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}>
@@ -162,7 +159,6 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
           <button onClick={onClose} style={{ color: '#4a6fa5' }}><X size={18} /></button>
         </div>
 
-        {/* Onglets */}
         <div className="flex px-6" style={{ borderBottom: '1px solid #1e2d4a' }}>
           {[
             { key: 'infos', label: 'Informations' },
@@ -181,15 +177,12 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-
-          {/* ONGLET INFOS */}
           {onglet === 'infos' && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs block mb-1" style={{ color: '#4a6fa5' }}>Nom *</label>
-                  <input value={form.nom} onChange={e => set('nom', e.target.value)}
-                    placeholder="Magret de canard" style={inputStyle} />
+                  <input value={form.nom} onChange={e => set('nom', e.target.value)} placeholder="Magret de canard" style={inputStyle} />
                 </div>
                 <div>
                   <label className="text-xs block mb-1" style={{ color: '#4a6fa5' }}>Type</label>
@@ -198,20 +191,16 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
                   </select>
                 </div>
               </div>
-
               <div>
                 <label className="text-xs block mb-1" style={{ color: '#4a6fa5' }}>Description</label>
                 <textarea value={form.description} onChange={e => set('description', e.target.value)}
-                  rows={2} placeholder="Description courte..."
-                  style={{ ...inputStyle, resize: 'none' }} />
+                  rows={2} placeholder="Description courte..." style={{ ...inputStyle, resize: 'none' }} />
               </div>
-
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs block mb-1" style={{ color: '#4a6fa5' }}>Prix vente TTC (€)</label>
                   <input type="number" step="0.01" value={form.prix_vente_ttc}
-                    onChange={e => set('prix_vente_ttc', e.target.value)}
-                    placeholder="24.00" style={inputStyle} />
+                    onChange={e => set('prix_vente_ttc', e.target.value)} placeholder="24.00" style={inputStyle} />
                 </div>
                 <div>
                   <label className="text-xs block mb-1" style={{ color: '#4a6fa5' }}>% Ficelles</label>
@@ -224,8 +213,6 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
                     onChange={e => set('nb_portions', e.target.value)} style={inputStyle} />
                 </div>
               </div>
-
-              {/* Calculs live */}
               {(coutPortion > 0 || prixVente > 0) && (
                 <div className="grid grid-cols-3 gap-3 p-4 rounded-xl" style={{ background: '#0a1120', border: '1px solid #1e2d4a' }}>
                   <div className="text-center">
@@ -248,10 +235,37 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
                   </div>
                 </div>
               )}
+
+              {recetteId && (
+                <div className="pt-3" style={{ borderTop: '1px solid #1e2d4a' }}>
+                  {!confirmDelete ? (
+                    <button onClick={() => setConfirmDelete(true)}
+                      className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg"
+                      style={{ color: '#f87171', background: '#1a0505', border: '1px solid #7f1d1d' }}>
+                      <Trash2 size={13} />Supprimer la recette
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs" style={{ color: '#f87171' }}>Supprimer définitivement cette recette ?</p>
+                      <div className="flex gap-2">
+                        <button onClick={handleDeleteRecette} disabled={loading}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white"
+                          style={{ background: '#dc2626' }}>
+                          <Trash2 size={12} />Confirmer
+                        </button>
+                        <button onClick={() => setConfirmDelete(false)}
+                          className="px-3 py-1.5 rounded-lg text-xs"
+                          style={{ background: '#1e2d4a', color: '#94a3b8' }}>
+                          Annuler
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {/* ONGLET INGREDIENTS */}
           {onglet === 'ingredients' && (
             <div className="space-y-4">
               {!recetteId && (
@@ -259,8 +273,6 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
                   Sauvegardez d'abord les informations avant d'ajouter des ingrédients
                 </div>
               )}
-
-              {/* Liste ingrédients */}
               <div className="space-y-2">
                 {ingredients.map((i: any) => (
                   <div key={i.id} className="flex items-center justify-between px-4 py-2.5 rounded-lg"
@@ -269,28 +281,23 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
                       <span className="text-sm font-medium" style={{ color: '#e2e8f0' }}>
                         {i.produits?.nom ?? i.vins?.nom ?? i.nom ?? '?'}
                       </span>
-                      <span className="text-xs ml-2" style={{ color: '#4a6fa5' }}>
-                        {i.quantite} {i.unite}
-                      </span>
+                      <span className="text-xs ml-2" style={{ color: '#4a6fa5' }}>{i.quantite} {i.unite}</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-xs font-medium" style={{ color: '#60a5fa' }}>
                         {i.cout_total ? `${parseFloat(i.cout_total).toFixed(3)} €` :
                          i.cout_unitaire ? `${(i.quantite * i.cout_unitaire).toFixed(3)} €` : '—'}
                       </span>
-                      <button onClick={() => handleRemoveIngredient(i.id)}
-                        style={{ color: '#f87171' }}><Trash2 size={14} /></button>
+                      <button onClick={() => handleRemoveIngredient(i.id)} style={{ color: '#f87171' }}>
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 ))}
                 {ingredients.length === 0 && (
-                  <p className="text-sm text-center py-6" style={{ color: '#2d4a7a' }}>
-                    Aucun ingrédient ajouté
-                  </p>
+                  <p className="text-sm text-center py-6" style={{ color: '#2d4a7a' }}>Aucun ingrédient ajouté</p>
                 )}
               </div>
-
-              {/* Ajouter ingrédient */}
               {recetteId && (
                 <div className="p-4 rounded-xl space-y-3" style={{ background: '#0a1120', border: '1px solid #1e2d4a' }}>
                   <p className="text-xs font-medium" style={{ color: '#4a6fa5' }}>Ajouter un ingrédient</p>
@@ -332,7 +339,6 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
             </div>
           )}
 
-          {/* ONGLET ALLERGENES */}
           {onglet === 'allergenes' && (
             <div className="space-y-3">
               <p className="text-xs" style={{ color: '#4a6fa5' }}>
@@ -344,7 +350,7 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
                   return (
                     <button key={a.value}
                       onClick={() => set('allergenes', actif
-                        ? form.allergenes.filter(x => x !== a.value)
+                        ? form.allergenes.filter((x: string) => x !== a.value)
                         : [...form.allergenes, a.value]
                       )}
                       className="px-3 py-2.5 rounded-lg text-sm text-left transition-all"
@@ -368,7 +374,6 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
           </div>
         )}
 
-        {/* Footer */}
         <div className="flex justify-between items-center px-6 py-4" style={{ borderTop: '1px solid #1e2d4a' }}>
           <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm"
             style={{ background: '#1e2d4a', color: '#94a3b8' }}>Fermer</button>
