@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useTransition } from 'react'
-import { Camera, Upload, X, Check, Loader2, Package, AlertTriangle } from 'lucide-react'
+import { Camera, Upload, X, Check, Loader2, AlertTriangle } from 'lucide-react'
 import { creerProduit } from '@/lib/actions/stocks'
 
 interface ProduitExtrait {
@@ -74,9 +74,7 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
             categorie: p.categorie,
             unite: p.unite,
             prix_unitaire: p.prix_unitaire || undefined,
-            stock_actuel: p.stock_initial || 0,
-            seuil_alerte: undefined,
-            actif: true,
+            seuil_alerte: 0,
           })
           count++
           setImportCount(count)
@@ -94,7 +92,6 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
       <div className="w-full max-w-2xl rounded-2xl overflow-hidden" style={{ background: '#0d1526', border: '1px solid #1e2d4a', maxHeight: '90vh', overflowY: 'auto' }}>
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid #1e2d4a' }}>
           <div className="flex items-center gap-3">
             <Camera size={18} style={{ color: '#60a5fa' }} />
@@ -104,7 +101,6 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
         </div>
 
         <div className="p-6">
-          {/* UPLOAD */}
           {step === 'upload' && (
             <div className="space-y-4">
               <div
@@ -140,7 +136,6 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
             </div>
           )}
 
-          {/* ANALYSE */}
           {step === 'analyse' && (
             <div className="flex flex-col items-center justify-center py-16 gap-4">
               <Loader2 size={32} className="animate-spin" style={{ color: '#60a5fa' }} />
@@ -148,7 +143,6 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
             </div>
           )}
 
-          {/* REVIEW */}
           {step === 'review' && (
             <div className="space-y-4">
               <p className="text-sm" style={{ color: '#4a6fa5' }}>
@@ -206,7 +200,6 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
             </div>
           )}
 
-          {/* IMPORT */}
           {step === 'import' && (
             <div className="flex flex-col items-center justify-center py-16 gap-4">
               {isPending ? (
