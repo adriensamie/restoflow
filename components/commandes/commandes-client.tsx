@@ -1,134 +1,159 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { Plus, Building2, Phone, Mail, Edit2, Package, Trash2 } from 'lucide-react'
-import { FournisseurModal } from './fournisseur-modal'
-import { supprimerFournisseur } from '@/lib/actions/commandes'
+import { useState } from 'react'
+import { Plus, ShoppingCart, Clock, CheckCircle, XCircle, Truck } from 'lucide-react'
+import { CommandeModal } from './commande-modal'
+
+const STATUT_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
+  brouillon:        { label: 'Brouillon',         color: '#94a3b8', bg: '#1e2d4a', icon: Clock },
+  envoyee:          { label: 'Envoyée',            color: '#60a5fa', bg: '#0a1f3d', icon: Truck },
+  confirmee:        { label: 'Confirmée',          color: '#4ade80', bg: '#0a2d1a', icon: CheckCircle },
+  recue:            { label: 'Reçue',              color: '#4ade80', bg: '#0a2d1a', icon: CheckCircle },
+  recue_partielle:  { label: 'Reçue partielle',    color: '#fbbf24', bg: '#1a1505', icon: Clock },
+  annulee:          { label: 'Annulée',            color: '#f87171', bg: '#1a0505', icon: XCircle },
+}
+
+interface Commande {
+  id: string
+  numero: string
+  statut: string
+  total_ht: number | null
+  date_livraison_prevue: string | null
+  created_at: string
+  fournisseurs: { nom: string } | null
+  commande_lignes: { count: number }[]
+}
 
 interface Fournisseur {
   id: string
   nom: string
-  contact_nom: string | null
-  contact_email: string | null
-  contact_telephone: string | null
-  adresse: string | null
-  delai_livraison: number
-  conditions_paiement: string | null
-  produit_fournisseur: { count: number }[]
 }
 
-export function FournisseursClient({ fournisseurs }: { fournisseurs: Fournisseur[] }) {
+export function CommandesClient({ commandes, fournisseurs }: {
+  commandes: Commande[]
+  fournisseurs: Fournisseur[]
+}) {
   const [showModal, setShowModal] = useState(false)
-  const [editItem, setEditItem] = useState<Fournisseur | null>(null)
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const [liste, setListe] = useState(fournisseurs)
-  const [isPending, startTransition] = useTransition()
+  const [filtreStatut, setFiltreStatut] = useState('tous')
 
-  const handleDelete = (id: string) => {
-    startTransition(async () => {
-      try {
-        await supprimerFournisseur(id)
-        setListe(prev => prev.filter(f => f.id !== id))
-        setConfirmDeleteId(null)
-      } catch (e) { console.error(e) }
-    })
+  const commandesFiltrees = commandes.filter(c =>
+    filtreStatut === 'tous' || c.statut === filtreStatut
+  )
+
+  const stats = {
+    total: commandes.length,
+    envoyees: commandes.filter(c => c.statut === 'envoyee').length,
+    enAttente: commandes.filter(c => ['brouillon', 'envoyee', 'confirmee'].includes(c.statut)).length,
+    montantTotal: commandes.reduce((acc, c) => acc + (c.total_ht || 0), 0),
   }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#e2e8f0' }}>Fournisseurs</h1>
+          <h1 className="text-2xl font-bold" style={{ color: '#e2e8f0' }}>Commandes</h1>
           <p className="text-sm mt-1" style={{ color: '#4a6fa5' }}>
-            {liste.length} fournisseur{liste.length > 1 ? 's' : ''} actif{liste.length > 1 ? 's' : ''}
+            {commandes.length} commande{commandes.length > 1 ? 's' : ''}
           </p>
         </div>
         <button onClick={() => setShowModal(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
           style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}>
-          <Plus size={16} />Nouveau fournisseur
+          <Plus size={16} />Nouvelle commande
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {liste.length === 0 && (
-          <div className="col-span-3 py-16 text-center" style={{ color: '#2d4a7a' }}>
-            <Building2 size={40} className="mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Aucun fournisseur. Créez-en un pour commencer.</p>
-          </div>
-        )}
-
-        {liste.map(f => (
-          <div key={f.id} className="rounded-xl p-5 space-y-4"
-            style={{ background: '#0d1526', border: '1px solid #1e2d4a' }}>
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-semibold" style={{ color: '#e2e8f0' }}>{f.nom}</h3>
-                {f.contact_nom && (
-                  <p className="text-xs mt-0.5" style={{ color: '#4a6fa5' }}>{f.contact_nom}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-1">
-                <button onClick={() => setEditItem(f)}
-                  className="p-1.5 rounded-lg" style={{ color: '#4a6fa5' }}>
-                  <Edit2 size={14} />
-                </button>
-                <button onClick={() => setConfirmDeleteId(f.id)}
-                  className="p-1.5 rounded-lg" style={{ color: '#f87171' }}>
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              {f.contact_telephone && (
-                <div className="flex items-center gap-2 text-xs" style={{ color: '#6b8cc7' }}>
-                  <Phone size={12} />{f.contact_telephone}
-                </div>
-              )}
-              {f.contact_email && (
-                <div className="flex items-center gap-2 text-xs" style={{ color: '#6b8cc7' }}>
-                  <Mail size={12} />{f.contact_email}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3 pt-2" style={{ borderTop: '1px solid #1e2d4a' }}>
-              <div className="flex items-center gap-1.5 text-xs" style={{ color: '#4a6fa5' }}>
-                <Package size={12} />
-                {f.produit_fournisseur?.[0]?.count ?? 0} produit{(f.produit_fournisseur?.[0]?.count ?? 0) > 1 ? 's' : ''}
-              </div>
-              <div className="text-xs" style={{ color: '#4a6fa5' }}>Délai : {f.delai_livraison}j</div>
-              {f.conditions_paiement && (
-                <div className="text-xs" style={{ color: '#4a6fa5' }}>{f.conditions_paiement}</div>
-              )}
-            </div>
-
-            {confirmDeleteId === f.id && (
-              <div className="p-3 rounded-lg space-y-2" style={{ background: '#1a0505', border: '1px solid #7f1d1d' }}>
-                <p className="text-xs" style={{ color: '#f87171' }}>Supprimer ce fournisseur ?</p>
-                <div className="flex gap-2">
-                  <button onClick={() => handleDelete(f.id)} disabled={isPending}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-white"
-                    style={{ background: '#dc2626' }}>
-                    Confirmer
-                  </button>
-                  <button onClick={() => setConfirmDeleteId(null)}
-                    className="px-3 py-1.5 rounded-lg text-xs"
-                    style={{ background: '#1e2d4a', color: '#94a3b8' }}>
-                    Annuler
-                  </button>
-                </div>
-              </div>
-            )}
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Total commandes', value: stats.total, color: '#60a5fa' },
+          { label: 'En attente', value: stats.enAttente, color: '#fbbf24' },
+          { label: 'Envoyées', value: stats.envoyees, color: '#4ade80' },
+          { label: 'Montant total HT', value: `${stats.montantTotal.toFixed(0)} €`, color: '#a78bfa' },
+        ].map(s => (
+          <div key={s.label} className="rounded-xl p-4" style={{ background: '#0d1526', border: '1px solid #1e2d4a' }}>
+            <p className="text-xs mb-1" style={{ color: '#4a6fa5' }}>{s.label}</p>
+            <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
           </div>
         ))}
       </div>
 
-      {(showModal || editItem) && (
-        <FournisseurModal
-          fournisseur={editItem ?? undefined}
-          onClose={() => { setShowModal(false); setEditItem(null) }}
+      {/* Filtres statut */}
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => setFiltreStatut('tous')}
+          className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+          style={{
+            background: filtreStatut === 'tous' ? '#0a1f3d' : '#0d1526',
+            color: filtreStatut === 'tous' ? '#60a5fa' : '#4a6fa5',
+            border: `1px solid ${filtreStatut === 'tous' ? '#1e3a7a' : '#1e2d4a'}`,
+          }}>
+          Toutes
+        </button>
+        {Object.entries(STATUT_CONFIG).map(([key, conf]) => (
+          <button key={key} onClick={() => setFiltreStatut(key)}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={{
+              background: filtreStatut === key ? conf.bg : '#0d1526',
+              color: filtreStatut === key ? conf.color : '#4a6fa5',
+              border: `1px solid ${filtreStatut === key ? conf.color + '40' : '#1e2d4a'}`,
+            }}>
+            {conf.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Liste commandes */}
+      <div className="space-y-3">
+        {commandesFiltrees.length === 0 && (
+          <div className="rounded-xl p-12 text-center" style={{ background: '#0d1526', border: '1px solid #1e2d4a' }}>
+            <ShoppingCart size={32} className="mx-auto mb-2 opacity-20" style={{ color: '#60a5fa' }} />
+            <p className="text-sm" style={{ color: '#2d4a7a' }}>Aucune commande</p>
+          </div>
+        )}
+
+        {commandesFiltrees.map(c => {
+          const conf = STATUT_CONFIG[c.statut] ?? STATUT_CONFIG.brouillon
+          const Icon = conf.icon
+          return (
+            <div key={c.id} className="rounded-xl p-4 flex items-center justify-between"
+              style={{ background: '#0d1526', border: '1px solid #1e2d4a' }}>
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: conf.bg }}>
+                  <Icon size={18} style={{ color: conf.color }} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold" style={{ color: '#e2e8f0' }}>{c.numero}</p>
+                    <span className="text-xs px-2 py-0.5 rounded-full"
+                      style={{ background: conf.bg, color: conf.color }}>
+                      {conf.label}
+                    </span>
+                  </div>
+                  <p className="text-xs mt-0.5" style={{ color: '#4a6fa5' }}>
+                    {c.fournisseurs?.nom ?? 'Fournisseur inconnu'}
+                    {c.date_livraison_prevue && ` · Livraison le ${new Date(c.date_livraison_prevue).toLocaleDateString('fr-FR')}`}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-bold" style={{ color: '#e2e8f0' }}>
+                  {c.total_ht ? `${c.total_ht.toFixed(2)} €` : '—'}
+                </p>
+                <p className="text-xs" style={{ color: '#2d4a7a' }}>
+                  {c.commande_lignes?.[0]?.count ?? 0} ligne{(c.commande_lignes?.[0]?.count ?? 0) > 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {showModal && (
+        <CommandeModal
+          fournisseurs={fournisseurs}
+          onClose={() => setShowModal(false)}
         />
       )}
     </div>
