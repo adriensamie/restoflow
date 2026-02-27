@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Plus, ShoppingCart, Clock, CheckCircle, XCircle, Truck } from 'lucide-react'
-import { CommandeModal } from './commande-modal'
+
 
 const STATUT_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
   brouillon:        { label: 'Brouillon',         color: '#94a3b8', bg: '#1e2d4a', icon: Clock },
@@ -150,12 +150,7 @@ export function CommandesClient({ commandes, fournisseurs }: {
         })}
       </div>
 
-      {showModal && (
-        <CommandeModal
-          fournisseurs={fournisseurs}
-          onClose={() => setShowModal(false)}
-        />
-      )}
+
     </div>
   )
 }
