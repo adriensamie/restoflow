@@ -3,12 +3,23 @@ import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
-import { getOrgBilling, type OrgBilling } from '@/lib/billing'
 import { TrialBanner } from '@/components/billing/trial-banner'
 import { ExpiredBanner } from '@/components/billing/expired-banner'
 import { getCurrentStaff, getAllowedRoutes } from '@/lib/rbac'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import type { Plan } from '@/lib/plans'
 export const dynamic = 'force-dynamic'
+
+// Local type — avoids importing from 'use server' billing.ts
+interface OrgBilling {
+  plan: Plan
+  trialEndsAt: string | null
+  subscriptionStatus: string | null
+  stripeCustomerId: string | null
+  isTrialExpired: boolean
+  daysLeft: number | null
+}
 
 function LayoutSkeleton() {
   return (
@@ -75,24 +86,103 @@ export default async function AppLayout({
   )
 }
 
+/** Query org billing directly (no 'use server' dependency) */
+async function fetchOrgBilling(clerkOrgId: string): Promise<OrgBilling | null> {
+  try {
+    const supabase = await createServerSupabaseClient()
+    const { data, error } = await supabase
+      .from('organizations')
+      .select('plan, trial_ends_at, subscription_status, stripe_customer_id')
+      .eq('clerk_org_id', clerkOrgId)
+      .single()
+
+    if (error || !data) return null
+    return toBilling(data)
+  } catch {
+    return null
+  }
+}
+
+/** Admin fallback: read/create org bypassing RLS */
+async function fetchOrgBillingAdmin(clerkOrgId: string): Promise<OrgBilling | null> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const adminSupabase = createAdminClient() as any
+
+    let { data } = await adminSupabase
+      .from('organizations')
+      .select('plan, trial_ends_at, subscription_status, stripe_customer_id')
+      .eq('clerk_org_id', clerkOrgId)
+      .single()
+
+    if (!data) {
+      // Org missing in Supabase — create it (webhook delay/failure)
+      const { orgSlug } = await auth()
+      const trialEndsAt = new Date()
+      trialEndsAt.setDate(trialEndsAt.getDate() + 14)
+
+      await adminSupabase.from('organizations').insert({
+        clerk_org_id: clerkOrgId,
+        nom: orgSlug || 'Mon restaurant',
+        slug: orgSlug || null,
+        plan: 'trial',
+        trial_ends_at: trialEndsAt.toISOString(),
+        stripe_customer_id: null,
+      })
+
+      console.log('[layout] Created org in Supabase for', clerkOrgId)
+
+      const result = await adminSupabase
+        .from('organizations')
+        .select('plan, trial_ends_at, subscription_status, stripe_customer_id')
+        .eq('clerk_org_id', clerkOrgId)
+        .single()
+      data = result.data
+    }
+
+    if (!data) return null
+    return toBilling(data)
+  } catch (e) {
+    console.error('[layout] fetchOrgBillingAdmin failed:', e)
+    return null
+  }
+}
+
+function toBilling(data: { plan: Plan; trial_ends_at: string | null; subscription_status: string | null; stripe_customer_id: string | null }): OrgBilling {
+  const now = new Date()
+  const trialEnd = data.trial_ends_at ? new Date(data.trial_ends_at) : null
+  const isTrialExpired = data.plan === 'trial' && trialEnd !== null && trialEnd < now
+  const daysLeft = data.plan === 'trial' && trialEnd
+    ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+    : null
+
+  return {
+    plan: data.plan,
+    trialEndsAt: data.trial_ends_at,
+    subscriptionStatus: data.subscription_status,
+    stripeCustomerId: data.stripe_customer_id,
+    isTrialExpired,
+    daysLeft,
+  }
+}
+
 async function AppShell({ children, clerkOrgId }: { children: React.ReactNode; clerkOrgId: string }) {
-  // Run billing and staff queries in parallel
+  // Run billing (direct query, no 'use server') and staff in parallel
   const [billingResult, staffResult] = await Promise.allSettled([
-    getOrgBilling(),
+    fetchOrgBilling(clerkOrgId),
     getCurrentStaff(),
   ])
 
   let billing = billingResult.status === 'fulfilled' ? billingResult.value : null
   const staff = staffResult.status === 'fulfilled' ? staffResult.value : null
 
-  // If billing failed, use admin fallback (webhook might not have created the org)
+  // If RLS query failed, use admin fallback
   if (!billing) {
-    const reason = billingResult.status === 'rejected' ? billingResult.reason : 'empty'
-    console.error('[layout] getOrgBilling failed:', reason)
-    billing = await getOrCreateOrgBilling(clerkOrgId)
+    console.error('[layout] fetchOrgBilling failed, trying admin fallback...')
+    billing = await fetchOrgBillingAdmin(clerkOrgId)
   }
 
-  // If still no billing after admin fallback, show error (don't redirect to avoid loop)
+  // If still no billing, show error (no redirect to avoid loops)
   if (!billing) {
     return (
       <div className="flex h-screen items-center justify-center" style={{ background: '#080d1a' }}>
@@ -144,74 +234,4 @@ async function AppShell({ children, clerkOrgId }: { children: React.ReactNode; c
       </div>
     </div>
   )
-}
-
-/**
- * Fallback: reads org billing with admin client (bypasses RLS/JWT issues).
- * If org doesn't exist in Supabase, creates it with trial defaults.
- */
-async function getOrCreateOrgBilling(clerkOrgId: string): Promise<OrgBilling | null> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const adminSupabase = createAdminClient() as any
-
-    // Try to read existing org
-    let { data } = await adminSupabase
-      .from('organizations')
-      .select('plan, trial_ends_at, subscription_status, stripe_customer_id')
-      .eq('clerk_org_id', clerkOrgId)
-      .single()
-
-    // Org doesn't exist — create it (webhook might have failed or not fired yet)
-    if (!data) {
-      const { orgSlug } = await auth()
-      const trialEndsAt = new Date()
-      trialEndsAt.setDate(trialEndsAt.getDate() + 14)
-
-      const { error: insertError } = await adminSupabase.from('organizations').insert({
-        clerk_org_id: clerkOrgId,
-        nom: orgSlug || 'Mon restaurant',
-        slug: orgSlug || null,
-        plan: 'trial',
-        trial_ends_at: trialEndsAt.toISOString(),
-        stripe_customer_id: null,
-      })
-
-      if (insertError) {
-        console.error('[layout] Failed to create org:', insertError)
-      } else {
-        console.log('[layout] Created org in Supabase for', clerkOrgId)
-      }
-
-      // Re-read after insert
-      const result = await adminSupabase
-        .from('organizations')
-        .select('plan, trial_ends_at, subscription_status, stripe_customer_id')
-        .eq('clerk_org_id', clerkOrgId)
-        .single()
-
-      data = result.data
-    }
-
-    if (!data) return null
-
-    const now = new Date()
-    const trialEnd = data.trial_ends_at ? new Date(data.trial_ends_at) : null
-    const isTrialExpired = data.plan === 'trial' && trialEnd !== null && trialEnd < now
-    const daysLeft = data.plan === 'trial' && trialEnd
-      ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
-      : null
-
-    return {
-      plan: data.plan,
-      trialEndsAt: data.trial_ends_at,
-      subscriptionStatus: data.subscription_status,
-      stripeCustomerId: data.stripe_customer_id,
-      isTrialExpired,
-      daysLeft,
-    }
-  } catch (e) {
-    console.error('[layout] getOrCreateOrgBilling failed:', e)
-    return null
-  }
 }
