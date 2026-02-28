@@ -21,9 +21,10 @@ export default async function AppLayout({
   let billing
   try {
     billing = await getOrgBilling()
-  } catch {
+  } catch (e) {
     // Race condition: webhook hasn't created the org yet — wait briefly and retry
-    await new Promise(r => setTimeout(r, 2000))
+    console.error('[layout] getOrgBilling failed, retry in 1s:', e)
+    await new Promise(r => setTimeout(r, 1000))
     try {
       billing = await getOrgBilling()
     } catch {
@@ -32,9 +33,22 @@ export default async function AppLayout({
     }
   }
 
-  const staff = await getCurrentStaff()
+  if (!billing) redirect('/onboarding')
+
+  let staff = null
+  try {
+    staff = await getCurrentStaff()
+  } catch (e) {
+    console.error('[layout] getCurrentStaff failed:', e)
+  }
+
   const role = staff?.role ?? 'employe'
-  const allowedRoutes = staff ? await getAllowedRoutes(role, staff.orgId) : ['/dashboard']
+  let allowedRoutes = ['/dashboard']
+  try {
+    if (staff) allowedRoutes = await getAllowedRoutes(role, staff.orgId)
+  } catch (e) {
+    console.error('[layout] getAllowedRoutes failed:', e)
+  }
 
   return (
     <div className="flex h-screen" style={{ background: '#080d1a' }}>
