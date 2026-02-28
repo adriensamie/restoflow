@@ -28,8 +28,8 @@ const SOURCES = [
 interface Event {
   id: string; event_type: string; montant: number; mode_paiement: string | null
   employe_nom: string | null; service: string | null; motif: string | null
-  nb_couverts: number | null; source: string; terminal_id: string | null
-  event_at: string
+  nb_couverts: number | null; source: string
+  created_at: string
 }
 
 export function AntifraudClient({ events, config }: { events: Event[], config: any }) {
@@ -170,7 +170,7 @@ export function AntifraudClient({ events, config }: { events: Event[], config: a
           <div className="space-y-1">
             {alertes.slice(0, 3).map(a => (
               <p key={a.id} className="text-xs" style={{ color: '#fca5a5' }}>
-                {new Date(a.event_at).toLocaleString('fr-FR')} ·{' '}
+                {new Date(a.created_at).toLocaleString('fr-FR')} ·{' '}
                 <strong>{a.montant.toFixed(2)} €</strong>
                 {a.employe_nom && ` · ${a.employe_nom}`}
                 {a.motif && ` · "${a.motif}"`}
@@ -267,7 +267,7 @@ export function AntifraudClient({ events, config }: { events: Event[], config: a
                       borderBottom: '1px solid #1a2540'
                     }}>
                       <td className="px-4 py-2.5 text-xs font-mono" style={{ color: '#4a6fa5' }}>
-                        {new Date(e.event_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(e.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-1.5">

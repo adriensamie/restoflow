@@ -1,14 +1,13 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Settings, Save, Check, Building2, Phone, Mail, FileText, TrendingDown, Globe, ChevronRight, Trash2, AlertTriangle } from 'lucide-react'
+import { Settings, Save, Check, Building2, FileText, Globe, ChevronRight, Trash2, AlertTriangle } from 'lucide-react'
 import { sauvegarderParametres } from '@/lib/actions/parametres'
 import { reinitialiserApplication } from '@/lib/actions/reset'
 
 const ONGLETS = [
   { key: 'general', label: 'Général', icon: Building2 },
-  { key: 'fiscal', label: 'Fiscal & TVA', icon: FileText },
-  { key: 'objectifs', label: 'Objectifs', icon: TrendingDown },
+  { key: 'fiscal', label: 'Fiscal', icon: FileText },
   { key: 'regional', label: 'Régional', icon: Globe },
   { key: 'danger', label: 'Zone danger', icon: Trash2 },
 ]
@@ -25,14 +24,10 @@ export function ParametresClient({ organisation }: { organisation: any }) {
     nom: organisation?.nom || '',
     adresse: organisation?.adresse || '',
     telephone: organisation?.telephone || '',
-    email: organisation?.email || '',
+    email: organisation?.email_contact || '',
     siret: organisation?.siret || '',
-    tva_intracom: organisation?.tva_intracom || '',
-    taux_tva_defaut: organisation?.taux_tva_defaut || 10,
-    objectif_food_cost: organisation?.objectif_food_cost || 30,
     timezone: organisation?.timezone || 'Europe/Paris',
     devise: organisation?.devise || 'EUR',
-    nb_couverts_moyen: organisation?.nb_couverts_moyen || 50,
   })
 
   const set = (key: string, val: any) => setForm(f => ({ ...f, [key]: val }))
@@ -139,10 +134,6 @@ export function ParametresClient({ organisation }: { organisation: any }) {
                     <input value={form.email} onChange={e => set('email', e.target.value)} style={inputStyle} placeholder="contact@monresto.fr" />
                   </div>
                 </div>
-                <div>
-                  <label style={labelStyle}>Nombre de couverts moyen</label>
-                  <input type="number" value={form.nb_couverts_moyen} onChange={e => set('nb_couverts_moyen', parseInt(e.target.value))} style={{ ...inputStyle, width: '160px' }} />
-                </div>
               </div>
             </>
           )}
@@ -152,70 +143,9 @@ export function ParametresClient({ organisation }: { organisation: any }) {
             <>
               <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#3b5280' }}>Informations fiscales</h2>
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label style={labelStyle}>SIRET</label>
-                    <input value={form.siret} onChange={e => set('siret', e.target.value)} style={inputStyle} placeholder="123 456 789 00010" />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>TVA Intracommunautaire</label>
-                    <input value={form.tva_intracom} onChange={e => set('tva_intracom', e.target.value)} style={inputStyle} placeholder="FR12 123456789" />
-                  </div>
-                </div>
                 <div>
-                  <label style={labelStyle}>Taux TVA par défaut (%)</label>
-                  <div className="flex gap-3">
-                    {[5.5, 10, 20].map(t => (
-                      <button key={t} onClick={() => set('taux_tva_defaut', t)}
-                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                        style={{
-                          background: form.taux_tva_defaut === t ? '#0a1f3d' : '#0a1120',
-                          color: form.taux_tva_defaut === t ? '#60a5fa' : '#4a6fa5',
-                          border: `1px solid ${form.taux_tva_defaut === t ? '#1e3a7a' : '#1e2d4a'}`,
-                        }}>
-                        {t}%
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs mt-2" style={{ color: '#2d4a7a' }}>5.5% boissons · 10% restauration · 20% alcool</p>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* OBJECTIFS */}
-          {onglet === 'objectifs' && (
-            <>
-              <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#3b5280' }}>Objectifs de performance</h2>
-              <div className="space-y-6">
-                <div>
-                  <label style={labelStyle}>Objectif food cost (%)</label>
-                  <div className="flex items-center gap-4">
-                    <input type="range" min="15" max="50" value={form.objectif_food_cost}
-                      onChange={e => set('objectif_food_cost', parseInt(e.target.value))}
-                      style={{ flex: 1, accentColor: '#60a5fa' }} />
-                    <span className="text-2xl font-bold w-16 text-center"
-                      style={{ color: form.objectif_food_cost <= 30 ? '#4ade80' : form.objectif_food_cost <= 38 ? '#fbbf24' : '#f87171' }}>
-                      {form.objectif_food_cost}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs mt-1" style={{ color: '#2d4a7a' }}>
-                    <span>Excellent &lt;28%</span><span>Bon 28-33%</span><span>Attention &gt;38%</span>
-                  </div>
-                </div>
-                <div className="p-4 rounded-lg" style={{ background: '#0a1120', border: '1px solid #1e2d4a' }}>
-                  <p className="text-xs font-semibold mb-2" style={{ color: '#4a6fa5' }}>Référentiels food cost restauration</p>
-                  {[
-                    { type: 'Gastronomique', val: '25-32%' },
-                    { type: 'Brasserie / Bistrot', val: '28-35%' },
-                    { type: 'Fast casual', val: '22-30%' },
-                    { type: 'Pizza / Italien', val: '25-33%' },
-                  ].map(r => (
-                    <div key={r.type} className="flex justify-between py-1 text-xs border-b last:border-0" style={{ borderColor: '#1e2d4a' }}>
-                      <span style={{ color: '#4a6fa5' }}>{r.type}</span>
-                      <span style={{ color: '#60a5fa' }}>{r.val}</span>
-                    </div>
-                  ))}
+                  <label style={labelStyle}>SIRET</label>
+                  <input value={form.siret} onChange={e => set('siret', e.target.value)} style={inputStyle} placeholder="123 456 789 00010" />
                 </div>
               </div>
             </>

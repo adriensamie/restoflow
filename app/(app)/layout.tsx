@@ -33,8 +33,8 @@ export default async function AppLayout({
   }
 
   const staff = await getCurrentStaff()
-  const role = staff?.role ?? 'patron'
-  const allowedRoutes = staff ? await getAllowedRoutes(role, staff.orgId) : ['*']
+  const role = staff?.role ?? 'employe'
+  const allowedRoutes = staff ? await getAllowedRoutes(role, staff.orgId) : ['/dashboard']
 
   return (
     <div className="flex h-screen" style={{ background: '#080d1a' }}>

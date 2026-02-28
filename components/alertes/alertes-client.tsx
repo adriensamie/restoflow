@@ -88,7 +88,7 @@ export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulatio
           </p>
           <div className="space-y-2">
             {stocksCritiques.map((p: any) => (
-              <div key={p.id} className="flex items-center gap-4 px-4 py-3 rounded-xl"
+              <div key={p.produit_id} className="flex items-center gap-4 px-4 py-3 rounded-xl"
                 style={{ background: '#1a0505', border: '1px solid #7f1d1d' }}>
                 <AlertTriangle size={16} style={{ color: '#f87171' }} />
                 <div className="flex-1">
@@ -96,7 +96,7 @@ export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulatio
                   <p className="text-xs" style={{ color: '#4a6fa5' }}>{p.categorie}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold" style={{ color: '#f87171' }}>{p.stock_actuel} {p.unite}</p>
+                  <p className="text-sm font-bold" style={{ color: '#f87171' }}>{p.quantite_actuelle} {p.unite}</p>
                   <p className="text-xs" style={{ color: '#4a6fa5' }}>seuil : {p.seuil_alerte} {p.unite}</p>
                 </div>
               </div>

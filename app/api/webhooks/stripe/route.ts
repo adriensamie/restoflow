@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       const plan = session.metadata?.plan as Plan | undefined
 
       if (plan) {
-        await supabase
+        const { error } = await supabase
           .from('organizations')
           .update({
             plan,
@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
             trial_ends_at: null,
           })
           .eq('stripe_customer_id', customerId)
+        if (error) console.error('Stripe webhook checkout update error:', error)
       }
       break
     }
@@ -61,10 +62,11 @@ export async function POST(req: NextRequest) {
       }
       if (plan) updates.plan = plan
 
-      await supabase
+      const { error } = await supabase
         .from('organizations')
         .update(updates)
         .eq('stripe_customer_id', customerId)
+      if (error) console.error('Stripe webhook subscription.updated error:', error)
       break
     }
 
@@ -72,14 +74,15 @@ export async function POST(req: NextRequest) {
       const subscription = event.data.object
       const customerId = subscription.customer as string
 
-      await supabase
+      const { error } = await supabase
         .from('organizations')
         .update({
-          plan: 'starter',
+          plan: 'trial',
           subscription_status: 'canceled',
           stripe_subscription_id: null,
         })
         .eq('stripe_customer_id', customerId)
+      if (error) console.error('Stripe webhook subscription.deleted error:', error)
       break
     }
 
@@ -87,10 +90,11 @@ export async function POST(req: NextRequest) {
       const invoice = event.data.object
       const customerId = invoice.customer as string
 
-      await supabase
+      const { error } = await supabase
         .from('organizations')
         .update({ subscription_status: 'past_due' })
         .eq('stripe_customer_id', customerId)
+      if (error) console.error('Stripe webhook payment_failed error:', error)
       break
     }
   }

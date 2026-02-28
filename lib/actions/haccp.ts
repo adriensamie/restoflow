@@ -52,6 +52,7 @@ export async function creerReleve(data: {
   employe_nom?: string
 }) {
   const validated = creerReleveSchema.parse(data)
+  await requireRole(['patron', 'manager', 'employe'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { data: result, error } = await (supabase as any)

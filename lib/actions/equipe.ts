@@ -37,13 +37,13 @@ export async function creerFichePaie(data: {
   const organization_id = await getOrgUUID()
 
   // Calculer net estimé (charges salariales ~22%)
-  const cotisations = Math.round(data.salaire_brut * 0.22 * 100) / 100
-  const salaire_net = Math.round((data.salaire_brut - cotisations) * 100) / 100
+  const cotisations = Math.round(validated.salaire_brut * 0.22 * 100) / 100
+  const salaire_net = Math.round((validated.salaire_brut - cotisations) * 100) / 100
 
   const { data: result, error } = await (supabase as any)
     .from('fiches_paie')
     .upsert({
-      ...data,
+      ...validated,
       organization_id,
       cotisations,
       salaire_net,
@@ -57,6 +57,7 @@ export async function creerFichePaie(data: {
 
 export async function validerFichePaie(id: string) {
   await requireAccess('fiches_paie')
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any).from('fiches_paie')
@@ -68,6 +69,7 @@ export async function validerFichePaie(id: string) {
 
 export async function marquerPaye(id: string) {
   await requireAccess('fiches_paie')
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any).from('fiches_paie')

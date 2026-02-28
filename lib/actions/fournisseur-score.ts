@@ -2,6 +2,7 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
+import { requireRole } from '@/lib/rbac'
 
 export async function calculerScoreFournisseur(fournisseurId: string): Promise<{
   score: number
@@ -10,6 +11,7 @@ export async function calculerScoreFournisseur(fournisseurId: string): Promise<{
   nbRetours: number
   tauxConformite: number
 }> {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 

@@ -11,12 +11,8 @@ export async function sauvegarderParametres(data: {
   telephone?: string
   email?: string
   siret?: string
-  tva_intracom?: string
-  taux_tva_defaut?: number
-  objectif_food_cost?: number
   timezone?: string
   devise?: string
-  nb_couverts_moyen?: number
 }) {
   const validated = sauvegarderParametresSchema.parse(data)
   const staff = await requireRole(['patron'])

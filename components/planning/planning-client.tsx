@@ -29,7 +29,7 @@ interface Creneau {
   id: string; employe_id: string; date: string
   heure_debut: string; heure_fin: string; poste: string | null
   service: string | null; statut: string; note: string | null
-  nb_heures: number; cout_prevu: number | null
+  cout_prevu: number | null
   employes: { prenom: string; nom: string; couleur: string; poste: string } | null
 }
 
@@ -65,8 +65,17 @@ export function PlanningClient({ employes, creneaux, dateDebut, dateFin }: {
   const creneauxParDate = (date: string) =>
     creneauxLocaux.filter(c => c.date === date)
 
+  // Calc hours from heure_debut/heure_fin
+  const calcHeures = (c: Creneau) => {
+    const [hd, md] = (c.heure_debut || '0:0').split(':').map(Number)
+    const [hf, mf] = (c.heure_fin || '0:0').split(':').map(Number)
+    let mins = hf * 60 + mf - (hd * 60 + md)
+    if (mins < 0) mins += 24 * 60
+    return mins / 60
+  }
+
   // Stats semaine
-  const totalHeures = creneauxLocaux.reduce((a, c) => a + (c.nb_heures || 0), 0)
+  const totalHeures = creneauxLocaux.reduce((a, c) => a + calcHeures(c), 0)
   const totalCout = creneauxLocaux.reduce((a, c) => a + (c.cout_prevu || 0), 0)
   const nbPresents = new Set(creneauxLocaux.map(c => c.employe_id)).size
 
@@ -277,7 +286,7 @@ export function PlanningClient({ employes, creneaux, dateDebut, dateFin }: {
             </p>
             {employes.map(emp => {
               const creneauxEmp = creneauxLocaux.filter(c => c.employe_id === emp.id)
-              const heures = creneauxEmp.reduce((a, c) => a + (c.nb_heures || 0), 0)
+              const heures = creneauxEmp.reduce((a, c) => a + calcHeures(c), 0)
               const cout = creneauxEmp.reduce((a, c) => a + (c.cout_prevu || 0), 0)
               const diff = heures - (emp.heures_contrat / 5) * 7 / 7 * creneauxEmp.length
               return (

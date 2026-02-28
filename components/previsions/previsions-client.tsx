@@ -26,7 +26,7 @@ interface Prevision {
   couverts_reel_midi: number | null; couverts_reel_soir: number | null; ca_reel: number | null
 }
 
-interface Produit { id: string; nom: string; categorie: string; stock_actuel: number; seuil_alerte: number; unite: string }
+interface Produit { produit_id: string; nom: string; categorie: string; quantite_actuelle: number; seuil_alerte: number; unite: string }
 
 export function PrevisionsClient({ previsions, historiqueCA, produits }: {
   previsions: Prevision[], historiqueCA: any[], produits: Produit[]
@@ -45,7 +45,7 @@ export function PrevisionsClient({ previsions, historiqueCA, produits }: {
   })
   const setF = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
 
-  const produitsAlerte = produits.filter(p => p.stock_actuel <= p.seuil_alerte)
+  const produitsAlerte = produits.filter(p => p.quantite_actuelle <= p.seuil_alerte)
 
   const handleGenerer = async () => {
     setLoading(true)
@@ -160,9 +160,9 @@ export function PrevisionsClient({ previsions, historiqueCA, produits }: {
           </div>
           <div className="flex flex-wrap gap-2">
             {produitsAlerte.slice(0, 6).map(p => (
-              <span key={p.id} className="text-xs px-2 py-1 rounded-full"
+              <span key={p.produit_id} className="text-xs px-2 py-1 rounded-full"
                 style={{ background: '#1a1505', color: '#fbbf24' }}>
-                {p.nom} — {p.stock_actuel} {p.unite}
+                {p.nom} — {p.quantite_actuelle} {p.unite}
               </span>
             ))}
           </div>

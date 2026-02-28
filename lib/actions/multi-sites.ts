@@ -2,12 +2,14 @@
 
 import { getOrgUUID } from '@/lib/auth'
 import { requireAccess } from '@/lib/billing'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { requireRole } from '@/lib/rbac'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function getChildOrganizations() {
   await requireAccess('multi_sites')
+  await requireRole(['patron'])
   const orgId = await getOrgUUID()
-  const supabase = createAdminClient() as any
+  const supabase = await createServerSupabaseClient() as any
 
   const { data, error } = await supabase
     .from('organizations')
@@ -20,8 +22,9 @@ export async function getChildOrganizations() {
 
 export async function linkChildOrganization(childClerkOrgId: string) {
   await requireAccess('multi_sites')
+  await requireRole(['patron'])
   const parentOrgId = await getOrgUUID()
-  const supabase = createAdminClient() as any
+  const supabase = await createServerSupabaseClient() as any
 
   const { data: child, error: findError } = await supabase
     .from('organizations')
@@ -53,8 +56,9 @@ export async function getConsolidatedKPIs(mois: string): Promise<{
   totals: { ca_total: number; food_cost_pct: number; nb_couverts: number; nb_employes: number }
 }> {
   await requireAccess('multi_sites')
+  await requireRole(['patron'])
   const orgId = await getOrgUUID()
-  const supabase = createAdminClient() as any
+  const supabase = await createServerSupabaseClient() as any
 
   // Get child orgs
   const { data: children } = await supabase

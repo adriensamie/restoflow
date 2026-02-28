@@ -28,7 +28,7 @@ interface Template {
 interface Releve {
   id: string; nom_controle: string; type: string; valeur: number | null
   unite: string | null; resultat: string; action_corrective: string | null
-  zone: string | null; employe_nom: string | null; releve_at: string
+  zone: string | null; employe_nom: string | null; created_at: string
 }
 
 export function HaccpClient({ templates, releves }: {
@@ -116,7 +116,7 @@ export function HaccpClient({ templates, releves }: {
 
   // Stats du jour
   const aujourd = new Date().toISOString().slice(0, 10)
-  const relevesAujourdhui = relevesLocaux.filter(r => r.releve_at?.startsWith(aujourd))
+  const relevesAujourdhui = relevesLocaux.filter(r => r.created_at?.startsWith(aujourd))
   const nonConformes = relevesLocaux.filter(r => r.resultat === 'non_conforme' || r.resultat === 'action_corrective')
   const taux = relevesLocaux.length > 0
     ? Math.round((relevesLocaux.filter(r => r.resultat === 'conforme').length / relevesLocaux.length) * 100) : 100
@@ -142,7 +142,7 @@ export function HaccpClient({ templates, releves }: {
     const rows = [
       ['Date', 'Contrôle', 'Type', 'Valeur', 'Unité', 'Résultat', 'Action corrective', 'Zone', 'Employé'],
       ...relevesLocaux.map(r => [
-        new Date(r.releve_at).toLocaleString('fr-FR'),
+        new Date(r.created_at).toLocaleString('fr-FR'),
         r.nom_controle, r.type,
         r.valeur ?? '', r.unite ?? '',
         r.resultat, r.action_corrective ?? '',
@@ -211,7 +211,7 @@ export function HaccpClient({ templates, releves }: {
           </div>
           {nonConformes.slice(0, 3).map(r => (
             <p key={r.id} className="text-xs mb-1" style={{ color: '#fca5a5' }}>
-              {new Date(r.releve_at).toLocaleDateString('fr-FR')} · {r.nom_controle}
+              {new Date(r.created_at).toLocaleDateString('fr-FR')} · {r.nom_controle}
               {r.valeur !== null && ` · ${r.valeur}${r.unite || ''}`}
               {r.action_corrective && ` → ${r.action_corrective}`}
             </p>
@@ -355,7 +355,7 @@ export function HaccpClient({ templates, releves }: {
                 return (
                   <tr key={r.id} style={{ background: i % 2 === 0 ? '#0d1526' : '#0a1120', borderBottom: '1px solid #1a2540' }}>
                     <td className="px-4 py-2.5 text-xs font-mono" style={{ color: '#4a6fa5' }}>
-                      {new Date(r.releve_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      {new Date(r.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td className="px-4 py-2.5 text-sm font-medium" style={{ color: '#e2e8f0' }}>{r.nom_controle}</td>
                     <td className="px-4 py-2.5">
