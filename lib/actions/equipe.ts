@@ -140,9 +140,14 @@ export async function genererFichesDepuisPlanning(mois: string) {
       salaire_net: Math.round(brut * 0.78 * 100) / 100,
     }, { onConflict: 'organization_id,employe_id,mois' })
 
-    if (!error) fiches.push(emp.id)
+    if (error) {
+      console.error(`Fiche paie erreur pour ${emp.id}:`, error.message)
+    } else {
+      fiches.push(emp.id)
+    }
   }
 
+  if (fiches.length === 0) throw new Error('Aucune fiche de paie générée — vérifiez les données')
   revalidatePath('/fiches-paie')
   return fiches.length
 }

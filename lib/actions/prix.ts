@@ -3,6 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
 import { requireRole } from '@/lib/rbac'
+import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 const enregistrerPrixSchema = z.object({
@@ -48,6 +49,7 @@ export async function enregistrerPrix(data: {
   })
 
   if (error) throw new Error(error.message)
+  revalidatePath('/stocks')
 }
 
 export async function getPrixHistorique(produitId: string, limit = 30) {

@@ -135,11 +135,12 @@ export async function supprimerRecette(id: string) {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   // Supprimer d'abord les ingrédients
-  await (supabase as any)
+  const { error: ingError } = await (supabase as any)
     .from('recette_ingredients')
     .delete()
     .eq('recette_id', id)
     .eq('organization_id', organization_id)
+  if (ingError) throw new Error(ingError.message)
   // Puis la recette
   const { error } = await (supabase as any)
     .from('recettes')

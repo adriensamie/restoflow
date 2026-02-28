@@ -58,6 +58,11 @@ export function NouvelleCommandeModal({ fournisseurs, blPreRempli, onClose }: Pr
       setError('Vérifiez les lignes — nom et quantité requis')
       return
     }
+    const lignesAvecProduit = lignes.filter(l => l.produit_id)
+    if (lignesAvecProduit.length === 0) {
+      setError('Aucune ligne n\'est liée à un produit existant. Associez au moins un produit.')
+      return
+    }
     setError('')
 
     startTransition(async () => {
@@ -66,7 +71,7 @@ export function NouvelleCommandeModal({ fournisseurs, blPreRempli, onClose }: Pr
           fournisseur_id: fournisseurId,
           date_livraison_prevue: dateLivraison || undefined,
           note: note || undefined,
-          lignes: lignes.filter(l => l.produit_id).map(l => ({
+          lignes: lignesAvecProduit.map(l => ({
             produit_id: l.produit_id,
             quantite_commandee: l.quantite_commandee,
             prix_unitaire: l.prix_unitaire,

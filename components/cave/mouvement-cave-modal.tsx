@@ -20,6 +20,7 @@ interface Vin {
 
 export function MouvementCaveModal({ vin, onClose }: { vin: Vin; onClose: () => void }) {
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [type, setType] = useState('entree')
   const [quantite, setQuantite] = useState('1')
   const [note, setNote] = useState('')
@@ -44,8 +45,9 @@ export function MouvementCaveModal({ vin, onClose }: { vin: Vin; onClose: () => 
         note: note || undefined,
       })
       onClose()
-    } catch (e) { console.error(e) }
-    finally { setLoading(false) }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur lors de l\'enregistrement')
+    } finally { setLoading(false) }
   }
 
   // Stock après opération
@@ -124,7 +126,10 @@ export function MouvementCaveModal({ vin, onClose }: { vin: Vin; onClose: () => 
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4" style={{ borderTop: '1px solid #1e2d4a' }}>
+        <div className="px-6 space-y-3" style={{ borderTop: '1px solid #1e2d4a', paddingTop: '16px' }}>
+          {error && <p className="text-sm" style={{ color: '#f87171' }}>{error}</p>}
+        </div>
+        <div className="flex justify-end gap-3 px-6 py-4">
           <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm"
             style={{ background: '#1e2d4a', color: '#94a3b8' }}>Annuler</button>
           <button onClick={handleSubmit} disabled={loading || !quantite}

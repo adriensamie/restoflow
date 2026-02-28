@@ -3,6 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
 import { requireRole } from '@/lib/rbac'
+import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 const allergenesSchema = z.array(z.string().min(1).max(100)).max(30)
@@ -33,11 +34,12 @@ export async function calculerAllergenesRecette(recetteId: string): Promise<stri
   const allergenes = Array.from(allergenesSet).sort()
 
   // Update recipe allergenes
-  await (supabase as any)
+  const { error } = await (supabase as any)
     .from('recettes')
     .update({ allergenes })
     .eq('id', recetteId)
     .eq('organization_id', organization_id)
+  if (error) throw new Error(error.message)
 
   return allergenes
 }
@@ -69,4 +71,6 @@ export async function updateProduitAllergenes(produitId: string, allergenes: str
       await calculerAllergenesRecette(recetteId)
     }
   }
+
+  revalidatePath('/stocks')
 }

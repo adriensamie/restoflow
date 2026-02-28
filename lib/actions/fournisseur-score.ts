@@ -3,6 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
 import { requireRole } from '@/lib/rbac'
+import { revalidatePath } from 'next/cache'
 
 export async function calculerScoreFournisseur(fournisseurId: string): Promise<{
   score: number
@@ -50,7 +51,7 @@ export async function calculerScoreFournisseur(fournisseurId: string): Promise<{
   score = Math.max(0, Math.min(10, Math.round(score * 10) / 10))
 
   // Update in fournisseurs table
-  await (supabase as any)
+  const { error: updError } = await (supabase as any)
     .from('fournisseurs')
     .update({
       score_fiabilite: score,
@@ -59,7 +60,9 @@ export async function calculerScoreFournisseur(fournisseurId: string): Promise<{
     })
     .eq('id', fournisseurId)
     .eq('organization_id', organization_id)
+  if (updError) throw new Error(updError.message)
 
+  revalidatePath('/fournisseurs')
   return {
     score,
     nbLivraisons: total,

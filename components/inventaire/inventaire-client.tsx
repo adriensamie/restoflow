@@ -19,7 +19,7 @@ interface Vin {
   id: string; nom: string; appellation: string | null; categorie: string; stock_bouteilles: number
 }
 interface Session {
-  id: string; nom: string; zone: string; statut: string; started_at: string
+  id: string; nom: string; zone: string; statut: string; created_at: string
   lignes_inventaire: { count: number }[]
 }
 
@@ -46,6 +46,7 @@ export function InventaireClient({ produits, vins, sessions }: {
   const [filtreZone, setFiltreZone] = useState('cuisine')
   const [recherche, setRecherche] = useState('')
   const [validating, setValidating] = useState(false)
+  const [erreurValidation, setErreurValidation] = useState('')
 
   // Détection offline
   useEffect(() => {
@@ -127,8 +128,9 @@ export function InventaireClient({ produits, vins, sessions }: {
       setVue('accueil')
       setSessionActive(null)
       setLignes([])
-    } catch (e) { console.error(e) }
-    finally { setValidating(false) }
+    } catch (e) {
+      setErreurValidation(e instanceof Error ? e.message : 'Erreur lors de la validation')
+    } finally { setValidating(false) }
   }
 
   const lignesFiltrees = lignes.filter(l => {
@@ -176,6 +178,12 @@ export function InventaireClient({ produits, vins, sessions }: {
             </button>
           </div>
         </div>
+
+        {erreurValidation && (
+          <div className="px-4 py-2" style={{ background: '#1a0505', borderBottom: '1px solid #7f1d1d' }}>
+            <p className="text-sm" style={{ color: '#f87171' }}>{erreurValidation}</p>
+          </div>
+        )}
 
         {/* Barre de progression */}
         <div className="px-4 py-2" style={{ background: '#0d1526', borderBottom: '1px solid #1e2d4a' }}>
@@ -308,7 +316,7 @@ export function InventaireClient({ produits, vins, sessions }: {
                   <p className="text-xs" style={{ color: '#4a6fa5' }}>
                     {ZONES.find(z => z.value === s.zone)?.label} ·{' '}
                     {s.lignes_inventaire?.[0]?.count ?? 0} lignes ·{' '}
-                    {new Date(s.started_at).toLocaleDateString('fr-FR')}
+                    {new Date(s.created_at).toLocaleDateString('fr-FR')}
                   </p>
                 </div>
               </div>
