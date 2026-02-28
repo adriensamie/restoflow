@@ -1,16 +1,13 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { auth } from '@clerk/nextjs/server'
 import { AssistantClient } from '@/components/assistant/assistant-client'
 import { requireRouteAccess } from '@/lib/require-route-access'
+import { getPageContext } from '@/lib/page-context'
 
 export default async function AssistantPage() {
   await requireRouteAccess('/assistant')
-  const supabase = await createServerSupabaseClient()
-  const { orgId } = await auth()
+  const { supabase, orgId } = await getPageContext()
 
   const { data: org } = await (supabase as any)
-    .from('organizations').select('id, nom').eq('clerk_org_id', orgId).single()
-  const orgUUID = org?.id
+    .from('organizations').select('nom').eq('id', orgId).single()
 
   // Contexte enrichi pour l'IA
   const aujourd = new Date()
@@ -26,13 +23,13 @@ export default async function AssistantPage() {
     { data: previsions },
     { data: nonConformes },
   ] = await Promise.all([
-    (supabase as any).from('stock_actuel').select('nom, quantite_actuelle, seuil_alerte, unite, categorie').eq('organization_id', orgUUID).order('quantite_actuelle'),
-    (supabase as any).from('mouvements_stock').select('quantite, prix_unitaire, motif, created_at').eq('organization_id', orgUUID).eq('type', 'perte').gte('created_at', debut30j),
-    (supabase as any).from('snapshots_food_cost').select('*').eq('organization_id', orgUUID).order('mois', { ascending: false }).limit(3),
-    (supabase as any).from('recettes').select('nom, type, food_cost_pct, marge_pct, cout_matiere, prix_vente_ttc').eq('actif', true).eq('organization_id', orgUUID).order('food_cost_pct', { ascending: false }).limit(10),
-    (supabase as any).from('employes').select('prenom, nom, poste, heures_contrat, taux_horaire').eq('actif', true).eq('organization_id', orgUUID),
-    (supabase as any).from('previsions').select('date_prevision, couverts_midi, couverts_soir, ca_prevu, ca_reel').eq('organization_id', orgUUID).gte('date_prevision', debutMois).order('date_prevision', { ascending: false }).limit(7),
-    (supabase as any).from('haccp_releves').select('nom_controle, resultat, action_corrective, created_at').eq('organization_id', orgUUID).eq('resultat', 'non_conforme').gte('created_at', debut30j).limit(5),
+    (supabase as any).from('stock_actuel').select('nom, quantite_actuelle, seuil_alerte, unite, categorie').eq('organization_id', orgId).order('quantite_actuelle'),
+    (supabase as any).from('mouvements_stock').select('quantite, prix_unitaire, motif, created_at').eq('organization_id', orgId).eq('type', 'perte').gte('created_at', debut30j),
+    (supabase as any).from('snapshots_food_cost').select('*').eq('organization_id', orgId).order('mois', { ascending: false }).limit(3),
+    (supabase as any).from('recettes').select('nom, type, food_cost_pct, marge_pct, cout_matiere, prix_vente_ttc').eq('actif', true).eq('organization_id', orgId).order('food_cost_pct', { ascending: false }).limit(10),
+    (supabase as any).from('employes').select('prenom, nom, poste, heures_contrat, taux_horaire').eq('actif', true).eq('organization_id', orgId),
+    (supabase as any).from('previsions').select('date_prevision, couverts_midi, couverts_soir, ca_prevu, ca_reel').eq('organization_id', orgId).gte('date_prevision', debutMois).order('date_prevision', { ascending: false }).limit(7),
+    (supabase as any).from('haccp_releves').select('nom_controle, resultat, action_corrective, created_at').eq('organization_id', orgId).eq('resultat', 'non_conforme').gte('created_at', debut30j).limit(5),
   ])
 
   const contexte = {

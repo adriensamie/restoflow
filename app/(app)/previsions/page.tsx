@@ -1,34 +1,28 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { auth } from '@clerk/nextjs/server'
 import { PrevisionsClient } from '@/components/previsions/previsions-client'
 import { requireRouteAccess } from '@/lib/require-route-access'
+import { getPageContext } from '@/lib/page-context'
 
 export default async function PrevisionsPage() {
   await requireRouteAccess('/previsions')
-  const supabase = await createServerSupabaseClient()
-  const { orgId } = await auth()
-
-  const { data: org } = await (supabase as any)
-    .from('organizations').select('id').eq('clerk_org_id', orgId).single()
-  const orgUUID = org?.id
+  const { supabase, orgId } = await getPageContext()
 
   const [{ data: previsions }, { data: snapshots }, { data: produits }] = await Promise.all([
     (supabase as any)
       .from('previsions')
       .select('*')
-      .eq('organization_id', orgUUID)
+      .eq('organization_id', orgId)
       .order('date_prevision', { ascending: false })
       .limit(30),
     (supabase as any)
       .from('snapshots_food_cost')
       .select('mois, ca_total, nb_couverts, ticket_moyen')
-      .eq('organization_id', orgUUID)
+      .eq('organization_id', orgId)
       .order('mois', { ascending: false })
       .limit(12),
     (supabase as any)
       .from('stock_actuel')
       .select('produit_id, nom, categorie, quantite_actuelle, seuil_alerte, unite')
-      .eq('organization_id', orgUUID)
+      .eq('organization_id', orgId)
       .order('nom'),
   ])
 

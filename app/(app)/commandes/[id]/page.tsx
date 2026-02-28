@@ -1,24 +1,18 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { auth } from '@clerk/nextjs/server'
 import { ReceptionClient } from '@/components/commandes/reception-client'
 import { requireRouteAccess } from '@/lib/require-route-access'
+import { getPageContext } from '@/lib/page-context'
 import { notFound } from 'next/navigation'
 
 export default async function CommandeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireRouteAccess('/commandes')
   const { id } = await params
-  const supabase = await createServerSupabaseClient()
-  const { orgId } = await auth()
-
-  const { data: org } = await (supabase as any)
-    .from('organizations').select('id').eq('clerk_org_id', orgId).single()
-  const orgUUID = org?.id
+  const { supabase, orgId } = await getPageContext()
 
   const { data: commande } = await (supabase as any)
     .from('commandes')
     .select('*, fournisseur_id, fournisseurs(nom, contact_telephone, contact_email)')
     .eq('id', id)
-    .eq('organization_id', orgUUID)
+    .eq('organization_id', orgId)
     .single()
 
   if (!commande) notFound()

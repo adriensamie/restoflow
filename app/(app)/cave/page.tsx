@@ -1,22 +1,16 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { auth } from '@clerk/nextjs/server'
 import { CaveClient } from '@/components/cave/cave-client'
 import { requireRouteAccess } from '@/lib/require-route-access'
+import { getPageContext } from '@/lib/page-context'
 
 export default async function CavePage() {
   await requireRouteAccess('/cave')
-  const supabase = await createServerSupabaseClient()
-  const { orgId } = await auth()
-
-  const { data: org } = await (supabase as any)
-    .from('organizations').select('id').eq('clerk_org_id', orgId).single()
-  const orgUUID = org?.id
+  const { supabase, orgId } = await getPageContext()
 
   const { data: vins } = await (supabase as any)
     .from('vins')
     .select('id, nom, appellation, categorie, zone, prix_achat_ht, prix_vente_ttc, prix_verre_ttc, contenance_verre, vendu_au_verre, stock_bouteilles, seuil_alerte, fournisseurs(nom)')
     .eq('actif', true)
-    .eq('organization_id', orgUUID)
+    .eq('organization_id', orgId)
     .order('categorie')
     .order('nom')
 

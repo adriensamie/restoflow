@@ -1,16 +1,10 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { auth } from '@clerk/nextjs/server'
 import { PlanningClient } from '@/components/planning/planning-client'
 import { requireRouteAccess } from '@/lib/require-route-access'
+import { getPageContext } from '@/lib/page-context'
 
 export default async function PlanningPage() {
   await requireRouteAccess('/planning')
-  const supabase = await createServerSupabaseClient()
-  const { orgId } = await auth()
-
-  const { data: org } = await (supabase as any)
-    .from('organizations').select('id').eq('clerk_org_id', orgId).single()
-  const orgUUID = org?.id
+  const { supabase, orgId } = await getPageContext()
 
   // Semaine courante
   const aujourd = new Date()
@@ -27,12 +21,12 @@ export default async function PlanningPage() {
       .from('employes')
       .select('*')
       .eq('actif', true)
-      .eq('organization_id', orgUUID)
+      .eq('organization_id', orgId)
       .order('poste').order('prenom'),
     (supabase as any)
       .from('creneaux_planning')
       .select('*, employes(prenom, nom, couleur, poste)')
-      .eq('organization_id', orgUUID)
+      .eq('organization_id', orgId)
       .gte('date', dateDebut)
       .lte('date', dateFin)
       .order('date').order('heure_debut'),

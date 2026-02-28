@@ -9,7 +9,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 export const POST = withRateLimit(async function POST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-  const access = await checkAccess('import_bl')
+  const access = await checkAccess('import_bl') // AI photo features gated with import_bl (Pro plan)
   if (!access.allowed) return NextResponse.json({ error: 'Fonctionnalité réservée au plan Pro.' }, { status: 403 })
 
   try {

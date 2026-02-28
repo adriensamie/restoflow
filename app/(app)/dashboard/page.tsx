@@ -1,5 +1,4 @@
-import { auth } from '@clerk/nextjs/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { getPageContext } from '@/lib/page-context'
 
 type OrgData = {
   nom: string
@@ -8,13 +7,12 @@ type OrgData = {
 }
 
 export default async function DashboardPage() {
-  const { orgId } = await auth()
+  const { supabase, orgId } = await getPageContext()
 
-  const supabase = await createServerSupabaseClient()
   const { data, error } = await (supabase as any)
     .from('organizations')
     .select('nom, plan, trial_ends_at')
-    .eq('clerk_org_id', orgId)
+    .eq('id', orgId)
     .single()
 
   const org = data as OrgData | null

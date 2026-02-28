@@ -1,16 +1,10 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { auth } from '@clerk/nextjs/server'
 import { HaccpClient } from '@/components/haccp/haccp-client'
 import { requireRouteAccess } from '@/lib/require-route-access'
+import { getPageContext } from '@/lib/page-context'
 
 export default async function HygienePage() {
   await requireRouteAccess('/hygiene')
-  const supabase = await createServerSupabaseClient()
-  const { orgId } = await auth()
-
-  const { data: org } = await (supabase as any)
-    .from('organizations').select('id').eq('clerk_org_id', orgId).single()
-  const orgUUID = org?.id
+  const { supabase, orgId } = await getPageContext()
 
   const aujourd = new Date()
   const debut7j = new Date(aujourd)
@@ -20,13 +14,13 @@ export default async function HygienePage() {
     (supabase as any)
       .from('haccp_templates')
       .select('*')
-      .eq('organization_id', orgUUID)
+      .eq('organization_id', orgId)
       .eq('actif', true)
       .order('nom'),
     (supabase as any)
       .from('haccp_releves')
       .select('*')
-      .eq('organization_id', orgUUID)
+      .eq('organization_id', orgId)
       .gte('created_at', debut7j.toISOString())
       .order('created_at', { ascending: false })
       .limit(200),

@@ -1,16 +1,10 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { auth } from '@clerk/nextjs/server'
 import { FichesPaieClient } from '@/components/equipe/fiches-paie-client'
 import { requireRouteAccess } from '@/lib/require-route-access'
+import { getPageContext } from '@/lib/page-context'
 
 export default async function FichesPaiePage() {
   await requireRouteAccess('/fiches-paie')
-  const supabase = await createServerSupabaseClient()
-  const { orgId } = await auth()
-
-  const { data: org } = await (supabase as any)
-    .from('organizations').select('id').eq('clerk_org_id', orgId).single()
-  const orgUUID = org?.id
+  const { supabase, orgId } = await getPageContext()
 
   const moisCourant = new Date().toISOString().slice(0, 7) + '-01'
 
@@ -18,13 +12,13 @@ export default async function FichesPaiePage() {
     (supabase as any)
       .from('fiches_paie')
       .select('*, employes(prenom, nom, poste, couleur)')
-      .eq('organization_id', orgUUID)
+      .eq('organization_id', orgId)
       .order('mois', { ascending: false }),
     (supabase as any)
       .from('employes')
       .select('id, prenom, nom, poste, taux_horaire, heures_contrat, couleur')
       .eq('actif', true)
-      .eq('organization_id', orgUUID)
+      .eq('organization_id', orgId)
       .order('prenom'),
   ])
 

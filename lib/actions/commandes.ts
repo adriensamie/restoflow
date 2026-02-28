@@ -232,11 +232,12 @@ export async function receptionnerLivraison(
         })
 
         // Auto-update product price
-        await (supabase as any)
+        const { error: updErr } = await (supabase as any)
           .from('produits')
           .update({ prix_unitaire: ligne.prix_unitaire })
           .eq('id', ligne.produit_id)
           .eq('organization_id', organization_id)
+        if (updErr) console.error('Prix update error:', updErr.message)
 
         // Alert if price increase > 10%
         if (variationPct && variationPct > 10) {

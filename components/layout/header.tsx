@@ -44,7 +44,7 @@ export function Header({ role = 'patron', staffName = '' }: Props) {
           <NotificationBadge onClick={() => setShowNotifs(true)} />
 
           <UserButton
-            afterSignOutUrl="/sign-in"
+            signInUrl="/sign-in"
             appearance={{
               elements: {
                 avatarBox: 'w-8 h-8',

@@ -1,22 +1,16 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { auth } from '@clerk/nextjs/server'
 import { PertesHeader } from '@/components/stocks/pertes-header'
 import { PertesTable } from '@/components/stocks/pertes-table'
 import { requireRouteAccess } from '@/lib/require-route-access'
+import { getPageContext } from '@/lib/page-context'
 
 export default async function PertesPage() {
   await requireRouteAccess('/pertes')
-  const supabase = await createServerSupabaseClient()
-  const { orgId } = await auth()
-
-  const { data: org } = await (supabase as any)
-    .from('organizations').select('id').eq('clerk_org_id', orgId).single()
-  const orgUUID = org?.id
+  const { supabase, orgId } = await getPageContext()
 
   const { data: pertes } = await (supabase as any)
     .from('mouvements_stock')
     .select('*, produits(nom, unite, categorie)')
-    .eq('organization_id', orgUUID)
+    .eq('organization_id', orgId)
     .eq('type', 'perte')
     .order('created_at', { ascending: false })
     .limit(200)
@@ -29,7 +23,7 @@ export default async function PertesPage() {
   const { data: pertesMois } = await (supabase as any)
     .from('mouvements_stock')
     .select('quantite, prix_unitaire')
-    .eq('organization_id', orgUUID)
+    .eq('organization_id', orgId)
     .eq('type', 'perte')
     .gte('created_at', debutMois.toISOString())
 
