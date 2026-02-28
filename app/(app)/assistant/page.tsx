@@ -26,20 +26,20 @@ export default async function AssistantPage() {
     { data: previsions },
     { data: nonConformes },
   ] = await Promise.all([
-    (supabase as any).from('produits').select('nom, stock_actuel, seuil_alerte, unite, categorie').eq('actif', true).eq('organization_id', orgUUID).order('stock_actuel'),
+    (supabase as any).from('stock_actuel').select('nom, quantite_actuelle, seuil_alerte, unite, categorie').eq('organization_id', orgUUID).order('quantite_actuelle'),
     (supabase as any).from('mouvements_stock').select('quantite, prix_unitaire, motif, created_at').eq('organization_id', orgUUID).eq('type', 'perte').gte('created_at', debut30j),
     (supabase as any).from('snapshots_food_cost').select('*').eq('organization_id', orgUUID).order('mois', { ascending: false }).limit(3),
     (supabase as any).from('recettes').select('nom, type, food_cost_pct, marge_pct, cout_matiere, prix_vente_ttc').eq('actif', true).eq('organization_id', orgUUID).order('food_cost_pct', { ascending: false }).limit(10),
     (supabase as any).from('employes').select('prenom, nom, poste, heures_contrat, taux_horaire').eq('actif', true).eq('organization_id', orgUUID),
     (supabase as any).from('previsions').select('date_prevision, couverts_midi, couverts_soir, ca_prevu, ca_reel').eq('organization_id', orgUUID).gte('date_prevision', debutMois).order('date_prevision', { ascending: false }).limit(7),
-    (supabase as any).from('haccp_releves').select('nom_controle, resultat, action_corrective, releve_at').eq('organization_id', orgUUID).eq('resultat', 'non_conforme').gte('releve_at', debut30j).limit(5),
+    (supabase as any).from('haccp_releves').select('nom_controle, resultat, action_corrective, created_at').eq('organization_id', orgUUID).eq('resultat', 'non_conforme').gte('created_at', debut30j).limit(5),
   ])
 
   const contexte = {
     restaurant: org?.nom,
     date: aujourd.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
     stocks: {
-      alertes: stocks?.filter((s: any) => s.stock_actuel <= s.seuil_alerte).map((s: any) => `${s.nom}: ${s.stock_actuel}${s.unite}`),
+      alertes: stocks?.filter((s: any) => s.quantite_actuelle <= s.seuil_alerte).map((s: any) => `${s.nom}: ${s.quantite_actuelle}${s.unite}`),
       totalProduits: stocks?.length,
     },
     pertes: {

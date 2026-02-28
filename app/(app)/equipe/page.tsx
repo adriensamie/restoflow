@@ -14,7 +14,7 @@ export default async function EquipePage() {
 
   const { data: employes } = await (supabase as any)
     .from('employes')
-    .select('*, contrats(*)')
+    .select('*')
     .eq('organization_id', orgUUID)
     .order('poste').order('prenom')
 

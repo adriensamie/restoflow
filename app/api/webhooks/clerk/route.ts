@@ -88,7 +88,7 @@ export async function POST(req: Request) {
           email: data.public_user_data?.identifier ?? null,
           role: data.role === 'org:admin' ? 'patron' : 'employe',
           actif: true,
-        }, { onConflict: 'clerk_user_id' })
+        }, { onConflict: 'organization_id,clerk_user_id' })
       }
     }
 

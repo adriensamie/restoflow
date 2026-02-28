@@ -20,6 +20,7 @@ interface Props {
   commande: {
     id: string; numero: string; statut: string; note: string | null
     date_livraison_prevue: string | null; total_ht: number | null
+    fournisseur_id: string
     fournisseurs: { nom: string; contact_telephone: string | null; contact_email: string | null } | null
   }
   lignes: Ligne[]
@@ -101,7 +102,7 @@ export function ReceptionClient({ commande, lignes }: Props) {
         {showRetourModal && (
           <RetourModal
             commandeId={commande.id}
-            fournisseurId={''}
+            fournisseurId={commande.fournisseur_id}
             fournisseurEmail={commande.fournisseurs?.contact_email ?? null}
             ecarts={ecarts.map(e => {
               const ligne = lignes.find(l => l.id === e.ligne_id)

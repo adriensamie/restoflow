@@ -26,7 +26,7 @@ interface Recette {
   recette_ingredients: any[]
 }
 
-interface Produit { id: string; nom: string; categorie: string; unite: string; prix_unitaire_ht: number | null }
+interface Produit { id: string; nom: string; categorie: string; unite: string; prix_unitaire: number | null }
 interface Vin { id: string; nom: string; appellation: string | null; prix_achat_ht: number | null }
 
 export function RecettesClient({ recettes, produits, vins }: {

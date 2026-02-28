@@ -30,12 +30,8 @@ export async function sauvegarderParametres(data: {
       telephone: validated.telephone,
       email_contact: validated.email,
       siret: validated.siret,
-      tva_intracom: validated.tva_intracom,
-      taux_tva_defaut: validated.taux_tva_defaut,
-      objectif_food_cost: validated.objectif_food_cost,
       timezone: validated.timezone || 'Europe/Paris',
       devise: validated.devise || 'EUR',
-      nb_couverts_moyen: validated.nb_couverts_moyen,
       updated_at: new Date().toISOString(),
     })
     .eq('id', staff.orgId)

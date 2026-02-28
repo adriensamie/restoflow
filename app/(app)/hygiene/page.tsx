@@ -22,13 +22,13 @@ export default async function HygienePage() {
       .select('*')
       .eq('organization_id', orgUUID)
       .eq('actif', true)
-      .order('ordre'),
+      .order('nom'),
     (supabase as any)
       .from('haccp_releves')
       .select('*')
       .eq('organization_id', orgUUID)
-      .gte('releve_at', debut7j.toISOString())
-      .order('releve_at', { ascending: false })
+      .gte('created_at', debut7j.toISOString())
+      .order('created_at', { ascending: false })
       .limit(200),
   ])
 

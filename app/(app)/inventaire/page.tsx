@@ -13,7 +13,7 @@ export default async function InventairePage() {
   const orgUUID = org?.id
 
   const [{ data: produits }, { data: vins }, { data: sessions }] = await Promise.all([
-    (supabase as any).from('produits').select('id, nom, categorie, unite, stock_actuel').eq('actif', true).eq('organization_id', orgUUID).order('categorie').order('nom'),
+    (supabase as any).from('produits').select('id, nom, categorie, unite, prix_unitaire').eq('actif', true).eq('organization_id', orgUUID).order('categorie').order('nom'),
     (supabase as any).from('vins').select('id, nom, appellation, categorie, stock_bouteilles').eq('actif', true).eq('organization_id', orgUUID).order('categorie').order('nom'),
     (supabase as any).from('sessions_inventaire').select('*, lignes_inventaire(count)').eq('organization_id', orgUUID).order('created_at', { ascending: false }).limit(10),
   ])

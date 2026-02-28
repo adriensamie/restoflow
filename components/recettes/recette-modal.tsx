@@ -23,7 +23,7 @@ const ALLERGENES = [
 
 interface Props {
   recette?: any
-  produits: { id: string; nom: string; unite: string; prix_unitaire_ht: number | null }[]
+  produits: { id: string; nom: string; unite: string; prix_unitaire: number | null }[]
   vins: { id: string; nom: string; appellation: string | null; prix_achat_ht: number | null }[]
   preRempli?: any
   onClose: () => void
@@ -95,8 +95,8 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
     try {
       const produit = produits.find(p => p.id === newIngr.produit_id)
       const vin = vins.find(v => v.id === newIngr.vin_id)
-      const coutUnitaire = produit?.prix_unitaire_ht
-        ? (['kg'].includes(produit.unite || '') ? produit.prix_unitaire_ht / 1000 : ['L'].includes(produit.unite || '') ? produit.prix_unitaire_ht / 100 : produit.prix_unitaire_ht)
+      const coutUnitaire = produit?.prix_unitaire
+        ? (['kg'].includes(produit.unite || '') ? produit.prix_unitaire / 1000 : ['L'].includes(produit.unite || '') ? produit.prix_unitaire / 100 : produit.prix_unitaire)
         : vin?.prix_achat_ht ?? 0
       await ajouterIngredient({
         recette_id: recetteId,

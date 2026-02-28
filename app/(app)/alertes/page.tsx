@@ -25,11 +25,10 @@ export default async function AlertesPage() {
     // Stocks sous seuil d'alerte
     (supabase as any)
       .from('stock_actuel')
-      .select('id, nom, categorie, stock_actuel, seuil_alerte, unite')
+      .select('produit_id, nom, categorie, quantite_actuelle, seuil_alerte, unite')
       .eq('organization_id', orgUUID)
-      .not('seuil_alerte', 'is', null)
-      .lt('stock_actuel', (supabase as any).raw?.('seuil_alerte') || 0)
-      .order('stock_actuel'),
+      .eq('en_alerte', true)
+      .order('quantite_actuelle'),
     // Pertes importantes ce mois
     (supabase as any)
       .from('mouvements_stock')
@@ -67,10 +66,7 @@ export default async function AlertesPage() {
       .limit(7),
   ])
 
-  // Fix stocks critiques — filtre côté JS car .raw() pas dispo
-  const stocksFiltered = (stocksCritiques || []).filter(
-    (p: any) => p.stock_actuel <= p.seuil_alerte
-  )
+  const stocksFiltered = stocksCritiques ?? []
 
   return (
     <AlertesClient

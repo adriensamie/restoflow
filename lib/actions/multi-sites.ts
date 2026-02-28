@@ -94,13 +94,13 @@ export async function getConsolidatedKPIs(mois: string): Promise<{
     // Food cost from recettes (approximate via marges)
     const { data: recettes } = await supabase
       .from('recettes')
-      .select('cout_total, prix_vente_ht')
+      .select('cout_matiere, prix_vente_ttc')
       .eq('organization_id', org.id)
 
     let coutTotal = 0, pvTotal = 0
     for (const r of recettes || []) {
-      coutTotal += r.cout_total || 0
-      pvTotal += r.prix_vente_ht || 0
+      coutTotal += r.cout_matiere || 0
+      pvTotal += r.prix_vente_ttc || 0
     }
     const food_cost_pct = pvTotal > 0 ? Math.round((coutTotal / pvTotal) * 1000) / 10 : 0
 

@@ -8,12 +8,13 @@ type OrgData = {
 }
 
 export default async function DashboardPage() {
-  const { orgId, userId } = await auth()
+  const { orgId } = await auth()
 
   const supabase = await createServerSupabaseClient()
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('organizations')
     .select('nom, plan, trial_ends_at')
+    .eq('clerk_org_id', orgId)
     .single()
 
   const org = data as OrgData | null

@@ -26,9 +26,8 @@ export default async function PrevisionsPage() {
       .order('mois', { ascending: false })
       .limit(12),
     (supabase as any)
-      .from('produits')
-      .select('id, nom, categorie, stock_actuel, seuil_alerte, unite')
-      .eq('actif', true)
+      .from('stock_actuel')
+      .select('produit_id, nom, categorie, quantite_actuelle, seuil_alerte, unite')
       .eq('organization_id', orgUUID)
       .order('nom'),
   ])

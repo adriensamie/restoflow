@@ -1,5 +1,4 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import type { NextFetchEvent, NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
 const isPublicRoute = createRouteMatcher([
@@ -7,14 +6,14 @@ const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/api/webhooks/(.*)',
-  '/api/pos/webhook/(.*)',
-  '/commande/(.*)',
+  '/api/caisse/webhook(.*)',
+  '/api/cron/(.*)',
   '/kiosk(.*)',
   '/cgu',
   '/confidentialite',
 ])
 
-const handler = clerkMiddleware(async (auth, req) => {
+export default clerkMiddleware(async (auth, req) => {
   if (isPublicRoute(req)) return NextResponse.next()
 
   const { userId, orgId } = await auth()
@@ -31,10 +30,6 @@ const handler = clerkMiddleware(async (auth, req) => {
 
   return NextResponse.next()
 })
-
-export function proxy(request: NextRequest, event: NextFetchEvent) {
-  return handler(request, event)
-}
 
 export const config = {
   matcher: [

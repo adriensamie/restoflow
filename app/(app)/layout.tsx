@@ -5,8 +5,7 @@ import { Header } from '@/components/layout/header'
 import { getOrgBilling } from '@/lib/billing'
 import { TrialBanner } from '@/components/billing/trial-banner'
 import { ExpiredBanner } from '@/components/billing/expired-banner'
-import { getCurrentStaff } from '@/lib/auth'
-import { getAllowedRoutes } from '@/lib/rbac'
+import { getCurrentStaff, getAllowedRoutes } from '@/lib/rbac'
 export const dynamic = 'force-dynamic'
 
 export default async function AppLayout({
@@ -19,7 +18,20 @@ export default async function AppLayout({
   if (!userId) redirect('/sign-in')
   if (!orgId) redirect('/onboarding')
 
-  const billing = await getOrgBilling()
+  let billing
+  try {
+    billing = await getOrgBilling()
+  } catch {
+    // Race condition: webhook hasn't created the org yet — wait briefly and retry
+    await new Promise(r => setTimeout(r, 2000))
+    try {
+      billing = await getOrgBilling()
+    } catch {
+      // Still not ready — show onboarding
+      redirect('/onboarding')
+    }
+  }
+
   const staff = await getCurrentStaff()
   const role = staff?.role ?? 'patron'
   const allowedRoutes = staff ? await getAllowedRoutes(role, staff.orgId) : ['*']

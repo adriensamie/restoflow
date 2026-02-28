@@ -1,9 +1,11 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 import { ReceptionClient } from '@/components/commandes/reception-client'
+import { requireRouteAccess } from '@/lib/require-route-access'
 import { notFound } from 'next/navigation'
 
 export default async function CommandeDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireRouteAccess('/commandes')
   const { id } = await params
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
@@ -14,7 +16,7 @@ export default async function CommandeDetailPage({ params }: { params: Promise<{
 
   const { data: commande } = await (supabase as any)
     .from('commandes')
-    .select('*, fournisseurs(nom, contact_telephone, contact_email)')
+    .select('*, fournisseur_id, fournisseurs(nom, contact_telephone, contact_email)')
     .eq('id', id)
     .eq('organization_id', orgUUID)
     .single()

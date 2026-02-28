@@ -1,7 +1,9 @@
 import { getOrgBilling } from '@/lib/billing'
 import { BillingClient } from '@/components/billing/billing-client'
+import { requireRouteAccess } from '@/lib/require-route-access'
 
 export default async function BillingPage() {
+  await requireRouteAccess('/billing')
   const billing = await getOrgBilling()
 
   return (

@@ -20,8 +20,8 @@ export default async function AntifraudPage() {
       .from('events_caisse')
       .select('*')
       .eq('organization_id', orgUUID)
-      .gte('event_at', debut.toISOString())
-      .order('event_at', { ascending: false })
+      .gte('created_at', debut.toISOString())
+      .order('created_at', { ascending: false })
       .limit(500),
     (supabase as any)
       .from('config_caisse')
