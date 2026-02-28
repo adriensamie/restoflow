@@ -22,3 +22,13 @@ export const creerCreneauSchema = z.object({
   service: z.string().max(50).optional(),
   note: z.string().max(500).optional(),
 })
+
+export const modifierStatutCreneauSchema = z.object({
+  statut: z.enum(['planifie', 'confirme', 'annule', 'effectue']),
+})
+
+export const dupliquerSemaineSchema = z.object({
+  dateDebut: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  dateFin: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  offsetJours: z.number().int().min(1).max(365),
+})

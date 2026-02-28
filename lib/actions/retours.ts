@@ -11,21 +11,21 @@ export async function creerRetour(data: {
   fournisseur_id: string
   lignes: { produit_id: string; quantite_retournee: number; prix_unitaire?: number; motif?: string }[]
 }) {
-  creerRetourSchema.parse(data)
+  const validated = creerRetourSchema.parse(data)
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
   const numero = `RET-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(Math.random() * 900000 + 100000)}`
 
-  const totalHt = data.lignes.reduce((acc, l) => acc + l.quantite_retournee * (l.prix_unitaire ?? 0), 0)
+  const totalHt = validated.lignes.reduce((acc, l) => acc + l.quantite_retournee * (l.prix_unitaire ?? 0), 0)
 
   const { data: retour, error } = await (supabase as any)
     .from('retours_fournisseur')
     .insert({
       organization_id,
-      commande_id: data.commande_id,
-      fournisseur_id: data.fournisseur_id,
+      commande_id: validated.commande_id,
+      fournisseur_id: validated.fournisseur_id,
       numero,
       statut: 'brouillon',
       total_ht: totalHt,
@@ -34,7 +34,7 @@ export async function creerRetour(data: {
 
   if (error) throw new Error(error.message)
 
-  const lignes = data.lignes.map(l => ({
+  const lignes = validated.lignes.map(l => ({
     retour_id: retour.id,
     produit_id: l.produit_id,
     quantite_retournee: l.quantite_retournee,
@@ -47,7 +47,7 @@ export async function creerRetour(data: {
   if (lignesError) throw new Error(lignesError.message)
 
   // Create stock exit movements for returned items
-  for (const l of data.lignes) {
+  for (const l of validated.lignes) {
     const { error: mvtError } = await (supabase as any).from('mouvements_stock').insert({
       produit_id: l.produit_id,
       organization_id,
@@ -94,14 +94,14 @@ export async function getRetourDetail(retourId: string) {
 }
 
 export async function majStatutRetour(retourId: string, statut: string) {
-  majStatutRetourSchema.parse({ retour_id: retourId, statut })
+  const validated = majStatutRetourSchema.parse({ retour_id: retourId, statut })
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
   const { error } = await (supabase as any)
     .from('retours_fournisseur')
-    .update({ statut })
+    .update({ statut: validated.statut })
     .eq('id', retourId)
     .eq('organization_id', organization_id)
 

@@ -17,13 +17,13 @@ export async function creerProduit(formData: {
   seuil_alerte?: number
   description?: string
 }) {
-  creerProduitSchema.parse(formData)
+  const validated = creerProduitSchema.parse(formData)
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { data, error } = await (supabase as any)
     .from('produits')
-    .insert({ ...formData, organization_id })
+    .insert({ ...validated, organization_id })
     .select()
     .single()
   if (error) throw new Error(error.message)
@@ -39,13 +39,13 @@ export async function modifierProduit(id: string, formData: {
   seuil_alerte?: number
   description?: string
 }) {
-  modifierProduitSchema.parse(formData)
+  const validated = modifierProduitSchema.parse(formData)
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
     .from('produits')
-    .update(formData)
+    .update(validated)
     .eq('id', id)
     .eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
@@ -75,13 +75,13 @@ export async function ajouterMouvement(formData: {
   motif?: string
   note?: string
 }) {
-  ajouterMouvementSchema.parse(formData)
+  const validated = ajouterMouvementSchema.parse(formData)
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
     .from('mouvements_stock')
-    .insert({ ...formData, organization_id })
+    .insert({ ...validated, organization_id })
   if (error) throw new Error(error.message)
 
   // Check stock critique after movement
@@ -89,7 +89,7 @@ export async function ajouterMouvement(formData: {
     const { data: stock } = await (supabase as any)
       .from('stock_actuel')
       .select('nom, quantite_actuelle, seuil_alerte, unite')
-      .eq('produit_id', formData.produit_id)
+      .eq('produit_id', validated.produit_id)
       .eq('organization_id', organization_id)
       .single()
     if (stock && stock.quantite_actuelle <= stock.seuil_alerte) {
@@ -110,11 +110,11 @@ export async function ajouterMouvement(formData: {
 export async function enregistrerInventaire(
   lignes: { produit_id: string; quantite_reelle: number; prix_unitaire?: number }[]
 ) {
-  lignes.forEach(l => ligneInventaireSchema.parse(l))
+  const validatedLignes = lignes.map(l => ligneInventaireSchema.parse(l))
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const inserts = lignes.map(l => ({
+  const inserts = validatedLignes.map(l => ({
     produit_id: l.produit_id,
     type: 'inventaire',
     quantite: l.quantite_reelle,

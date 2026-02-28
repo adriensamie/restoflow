@@ -79,7 +79,9 @@ export async function marquerPaye(id: string) {
 }
 
 export async function genererFichesDepuisPlanning(mois: string) {
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/).parse(mois)
   await requireAccess('fiches_paie')
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 

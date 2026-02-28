@@ -62,13 +62,13 @@ export async function creerReleve(data: {
   if (error) throw new Error(error.message)
 
   // Notify on non-conformity
-  if (data.resultat === 'non_conforme') {
+  if (validated.resultat === 'non_conforme') {
     try {
       await createNotification({
         organizationId: organization_id,
         type: 'haccp_non_conforme',
-        titre: `Non-conformite HACCP : ${data.nom_controle}`,
-        message: data.action_corrective ? `Action : ${data.action_corrective}` : `Releve non conforme detecte`,
+        titre: `Non-conformite HACCP : ${validated.nom_controle}`,
+        message: validated.action_corrective ? `Action : ${validated.action_corrective}` : `Releve non conforme detecte`,
         canal: ['in_app', 'web_push'],
       })
     } catch {}

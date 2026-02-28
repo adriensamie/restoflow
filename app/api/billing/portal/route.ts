@@ -2,8 +2,9 @@ import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { withRateLimit } from '@/lib/api-rate-limit'
 
-export async function POST(req: NextRequest) {
+export const POST = withRateLimit(async function POST(req: NextRequest) {
   const { userId, orgId } = await auth()
   if (!userId || !orgId) {
     return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
@@ -27,4 +28,4 @@ export async function POST(req: NextRequest) {
   })
 
   return NextResponse.json({ url: session.url })
-}
+}, { maxRequests: 10, windowMs: 60 * 1000, prefix: 'billing-portal' })

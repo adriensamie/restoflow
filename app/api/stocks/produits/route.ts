@@ -12,9 +12,8 @@ export async function GET() {
   if (!org?.id) return NextResponse.json([])
 
   const { data } = await (supabase as any)
-    .from('produits')
-    .select('id, nom, categorie, unite')
-    .eq('actif', true)
+    .from('stock_actuel')
+    .select('produit_id, nom, categorie, unite, quantite_actuelle')
     .eq('organization_id', org.id)
     .order('nom')
 

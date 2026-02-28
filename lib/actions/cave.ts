@@ -3,7 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
-import { creerVinSchema, mouvementCaveSchema } from '@/lib/validations/cave'
+import { creerVinSchema, modifierVinSchema, mouvementCaveSchema } from '@/lib/validations/cave'
 import { requireAccess } from '@/lib/billing'
 import { requireRole } from '@/lib/rbac'
 
@@ -23,11 +23,11 @@ export async function creerVin(data: {
 }) {
   await requireAccess('cave')
   await requireRole(['patron', 'manager'])
-  creerVinSchema.parse(data)
+  const validated = creerVinSchema.parse(data)
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { data: result, error } = await (supabase as any)
-    .from('vins').insert({ ...data, organization_id }).select().single()
+    .from('vins').insert({ ...validated, organization_id }).select().single()
   if (error) throw new Error(error.message)
   revalidatePath('/cave')
   return result
@@ -46,12 +46,13 @@ export async function modifierVin(id: string, data: {
   contenance_verre?: number | null
   seuil_alerte?: number
 }) {
+  const validated = modifierVinSchema.parse(data)
   await requireAccess('cave')
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
-    .from('vins').update(data).eq('id', id).eq('organization_id', organization_id)
+    .from('vins').update(validated).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/cave')
 }
@@ -65,24 +66,24 @@ export async function ajouterMouvementCave(data: {
 }) {
   await requireAccess('cave')
   await requireRole(['patron', 'manager'])
-  mouvementCaveSchema.parse(data)
+  const validated = mouvementCaveSchema.parse(data)
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
-    .from('mouvements_cave').insert({ ...data, organization_id })
+    .from('mouvements_cave').insert({ ...validated, organization_id })
   if (error) throw new Error(error.message)
 
   const { data: vin, error: vinError } = await (supabase as any)
-    .from('vins').select('stock_bouteilles').eq('id', data.vin_id).eq('organization_id', organization_id).single()
+    .from('vins').select('stock_bouteilles').eq('id', validated.vin_id).eq('organization_id', organization_id).single()
   if (vinError) throw new Error(vinError.message)
 
   if (vin) {
     let delta = 0
-    if (data.type === 'entree') delta = data.quantite
-    if (data.type === 'sortie_bouteille' || data.type === 'sortie_verre' || data.type === 'casse') delta = -data.quantite
-    if (data.type === 'inventaire') {
+    if (validated.type === 'entree') delta = validated.quantite
+    if (validated.type === 'sortie_bouteille' || validated.type === 'sortie_verre' || validated.type === 'casse') delta = -validated.quantite
+    if (validated.type === 'inventaire') {
       const { error: updErr } = await (supabase as any).from('vins')
-        .update({ stock_bouteilles: data.quantite }).eq('id', data.vin_id).eq('organization_id', organization_id)
+        .update({ stock_bouteilles: validated.quantite }).eq('id', validated.vin_id).eq('organization_id', organization_id)
       if (updErr) throw new Error(updErr.message)
       revalidatePath('/cave')
       return
@@ -90,7 +91,7 @@ export async function ajouterMouvementCave(data: {
     // TODO: remplacer par un UPDATE atomique côté DB (stock_bouteilles = stock_bouteilles + delta)
     const { error: updErr } = await (supabase as any).from('vins')
       .update({ stock_bouteilles: Math.max(0, (vin.stock_bouteilles || 0) + delta) })
-      .eq('id', data.vin_id).eq('organization_id', organization_id)
+      .eq('id', validated.vin_id).eq('organization_id', organization_id)
     if (updErr) throw new Error(updErr.message)
   }
   revalidatePath('/cave')

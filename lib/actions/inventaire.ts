@@ -36,19 +36,19 @@ export async function sauvegarderLigneInventaire(data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  if (data.produit_id) {
+  if (validated.produit_id) {
     const { error } = await (supabase as any)
       .from('lignes_inventaire')
       .upsert(
-        { ...data, organization_id, counted_at: new Date().toISOString() },
+        { ...validated, organization_id, counted_at: new Date().toISOString() },
         { onConflict: 'session_id,produit_id' }
       )
     if (error) throw new Error(error.message)
-  } else if (data.vin_id) {
+  } else if (validated.vin_id) {
     const { error } = await (supabase as any)
       .from('lignes_inventaire')
       .upsert(
-        { ...data, organization_id, counted_at: new Date().toISOString() },
+        { ...validated, organization_id, counted_at: new Date().toISOString() },
         { onConflict: 'session_id,vin_id' }
       )
     if (error) throw new Error(error.message)
@@ -58,6 +58,7 @@ export async function sauvegarderLigneInventaire(data: {
 }
 
 export async function validerInventaire(sessionId: string) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
@@ -102,6 +103,7 @@ export async function validerInventaire(sessionId: string) {
 }
 
 export async function annulerInventaire(sessionId: string) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any).from('sessions_inventaire')

@@ -3,6 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
 import { requireRole } from '@/lib/rbac'
+import { bilanDateSchema } from '@/lib/validations/bilan'
 
 export interface BilanJournee {
   date: string
@@ -20,6 +21,7 @@ export interface BilanJournee {
 }
 
 export async function getBilanJournee(date: string): Promise<BilanJournee> {
+  bilanDateSchema.parse(date)
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
@@ -84,8 +86,9 @@ export async function getBilanJournee(date: string): Promise<BilanJournee> {
   for (const c of (creneaux ?? [])) {
     const [dh, dm] = (c.heure_debut || '0:0').split(':').map(Number)
     const [fh, fm] = (c.heure_fin || '0:0').split(':').map(Number)
-    const h = (fh + fm / 60) - (dh + dm / 60)
-    heures_equipe += Math.max(0, h)
+    let mins = fh * 60 + fm - (dh * 60 + dm)
+    if (mins < 0) mins += 24 * 60
+    heures_equipe += mins / 60
     cout_equipe += c.cout_prevu ?? 0
   }
 

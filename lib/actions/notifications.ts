@@ -4,6 +4,15 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { requireRole } from '@/lib/rbac'
+import { z } from 'zod'
+
+const updatePreferenceSchema = z.object({
+  staff_id: z.string().uuid(),
+  type: z.string().min(1).max(100),
+  in_app: z.boolean(),
+  web_push: z.boolean(),
+  email: z.boolean(),
+})
 
 export async function getNotifications(limit = 50) {
   const supabase = await createServerSupabaseClient()
@@ -79,6 +88,7 @@ export async function updatePreference(data: {
   web_push: boolean
   email: boolean
 }) {
+  const validated = updatePreferenceSchema.parse(data)
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
@@ -87,11 +97,11 @@ export async function updatePreference(data: {
     .from('notification_preferences')
     .upsert({
       organization_id,
-      staff_id: data.staff_id,
-      type: data.type,
-      in_app: data.in_app,
-      web_push: data.web_push,
-      email: data.email,
+      staff_id: validated.staff_id,
+      type: validated.type,
+      in_app: validated.in_app,
+      web_push: validated.web_push,
+      email: validated.email,
     }, { onConflict: 'organization_id,staff_id,type' })
 
   if (error) throw new Error(error.message)

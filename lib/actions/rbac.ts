@@ -48,7 +48,7 @@ export async function updateRolePermissions(data: {
   allowed_routes: string[]
   allowed_actions: string[]
 }) {
-  updateRolePermissionsSchema.parse(data)
+  const validated = updateRolePermissionsSchema.parse(data)
   await requireRole(['patron'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
@@ -57,9 +57,9 @@ export async function updateRolePermissions(data: {
     .from('role_permissions')
     .upsert({
       organization_id,
-      role: data.role,
-      allowed_routes: data.allowed_routes,
-      allowed_actions: data.allowed_actions,
+      role: validated.role,
+      allowed_routes: validated.allowed_routes,
+      allowed_actions: validated.allowed_actions,
     }, { onConflict: 'organization_id,role' })
 
   if (error) throw new Error(error.message)

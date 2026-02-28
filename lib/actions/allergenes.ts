@@ -2,8 +2,13 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
+import { requireRole } from '@/lib/rbac'
+import { z } from 'zod'
+
+const allergenesSchema = z.array(z.string().min(1).max(100)).max(30)
 
 export async function calculerAllergenesRecette(recetteId: string): Promise<string[]> {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
@@ -38,12 +43,14 @@ export async function calculerAllergenesRecette(recetteId: string): Promise<stri
 }
 
 export async function updateProduitAllergenes(produitId: string, allergenes: string[]) {
+  const validatedAllergenes = allergenesSchema.parse(allergenes)
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
   const { error } = await (supabase as any)
     .from('produits')
-    .update({ allergenes })
+    .update({ allergenes: validatedAllergenes })
     .eq('id', produitId)
     .eq('organization_id', organization_id)
 

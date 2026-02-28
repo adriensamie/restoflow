@@ -11,6 +11,17 @@ export const creerRecetteSchema = z.object({
   importe_ia: z.boolean().optional(),
 })
 
+export const modifierRecetteSchema = z.object({
+  nom: z.string().min(1).max(200).optional(),
+  type: z.string().min(1).max(50).optional(),
+  description: z.string().max(1000).nullish(),
+  prix_vente_ttc: z.number().min(0).nullish(),
+  pourcentage_ficelles: z.number().min(0).max(100).nullish(),
+  nb_portions: z.number().int().positive().nullish(),
+  allergenes: z.array(z.string()).nullish(),
+  importe_ia: z.boolean().optional(),
+})
+
 export const ajouterIngredientSchema = z.object({
   recette_id: z.string().uuid(),
   produit_id: z.string().uuid().optional(),

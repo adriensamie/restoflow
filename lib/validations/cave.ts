@@ -15,6 +15,8 @@ export const creerVinSchema = z.object({
   seuil_alerte: z.number().int().min(0).optional(),
 })
 
+export const modifierVinSchema = creerVinSchema.partial()
+
 export const mouvementCaveSchema = z.object({
   vin_id: z.string().uuid(),
   type: z.enum(['entree', 'sortie_bouteille', 'sortie_verre', 'casse', 'inventaire']),

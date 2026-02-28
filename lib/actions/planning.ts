@@ -3,7 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
-import { creerEmployeSchema, modifierEmployeSchema, creerCreneauSchema } from '@/lib/validations/planning'
+import { creerEmployeSchema, modifierEmployeSchema, creerCreneauSchema, modifierStatutCreneauSchema, dupliquerSemaineSchema } from '@/lib/validations/planning'
 import { requireRole } from '@/lib/rbac'
 
 export async function creerEmploye(data: {
@@ -16,12 +16,12 @@ export async function creerEmploye(data: {
   taux_horaire?: number
   heures_contrat?: number
 }) {
-  creerEmployeSchema.parse(data)
+  const validated = creerEmployeSchema.parse(data)
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { data: result, error } = await (supabase as any)
-    .from('employes').insert({ ...data, organization_id }).select().single()
+    .from('employes').insert({ ...validated, organization_id }).select().single()
   if (error) throw new Error(error.message)
   revalidatePath('/planning')
   revalidatePath('/equipe')
@@ -38,12 +38,12 @@ export async function modifierEmploye(id: string, data: {
   taux_horaire?: number
   heures_contrat?: number
 }) {
-  modifierEmployeSchema.parse(data)
+  const validated = modifierEmployeSchema.parse(data)
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
-    .from('employes').update(data).eq('id', id).eq('organization_id', organization_id)
+    .from('employes').update(validated).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/planning')
   revalidatePath('/equipe')
@@ -69,18 +69,18 @@ export async function creerCreneau(data: {
   service?: string
   note?: string
 }) {
-  creerCreneauSchema.parse(data)
+  const validated = creerCreneauSchema.parse(data)
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
   // Calculer le coût prévu
   const { data: emp, error: empError } = await (supabase as any)
-    .from('employes').select('taux_horaire').eq('id', data.employe_id).eq('organization_id', organization_id).single()
+    .from('employes').select('taux_horaire').eq('id', validated.employe_id).eq('organization_id', organization_id).single()
   if (empError) throw new Error(empError.message)
 
-  const [hd, md] = data.heure_debut.split(':').map(Number)
-  const [hf, mf] = data.heure_fin.split(':').map(Number)
+  const [hd, md] = validated.heure_debut.split(':').map(Number)
+  const [hf, mf] = validated.heure_fin.split(':').map(Number)
   let minutes = hf * 60 + mf - (hd * 60 + md)
   if (minutes < 0) minutes += 24 * 60
   const heures = minutes / 60
@@ -88,7 +88,7 @@ export async function creerCreneau(data: {
 
   const { data: result, error } = await (supabase as any)
     .from('creneaux_planning')
-    .insert({ ...data, organization_id, cout_prevu: cout })
+    .insert({ ...validated, organization_id, cout_prevu: cout })
     .select().single()
   if (error) throw new Error(error.message)
   revalidatePath('/planning')
@@ -96,11 +96,12 @@ export async function creerCreneau(data: {
 }
 
 export async function modifierStatutCreneau(id: string, statut: string) {
+  const validated = modifierStatutCreneauSchema.parse({ statut })
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
-    .from('creneaux_planning').update({ statut }).eq('id', id).eq('organization_id', organization_id)
+    .from('creneaux_planning').update({ statut: validated.statut }).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/planning')
 }
@@ -116,6 +117,7 @@ export async function supprimerCreneau(id: string) {
 }
 
 export async function dupliquerSemaine(dateDebut: string, dateFin: string, offsetJours: number) {
+  const validated = dupliquerSemaineSchema.parse({ dateDebut, dateFin, offsetJours })
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
@@ -124,15 +126,15 @@ export async function dupliquerSemaine(dateDebut: string, dateFin: string, offse
     .from('creneaux_planning')
     .select('employe_id, date, heure_debut, heure_fin, poste, service, note, cout_prevu')
     .eq('organization_id', organization_id)
-    .gte('date', dateDebut)
-    .lte('date', dateFin)
+    .gte('date', validated.dateDebut)
+    .lte('date', validated.dateFin)
   if (selError) throw new Error(selError.message)
 
   if (!creneaux?.length) throw new Error('Aucun créneau à dupliquer')
 
   const nouveaux = creneaux.map((c: any) => {
     const d = new Date(c.date)
-    d.setDate(d.getDate() + offsetJours)
+    d.setDate(d.getDate() + validated.offsetJours)
     return { ...c, organization_id, date: d.toISOString().slice(0, 10), statut: 'planifie' }
   })
 

@@ -23,6 +23,16 @@ export const creerCommandeSchema = z.object({
   })).min(1),
 })
 
+export const lierProduitFournisseurSchema = z.object({
+  produit_id: z.string().uuid(),
+  fournisseur_id: z.string().uuid(),
+  reference: z.string().max(200).optional(),
+  prix_negocie: z.number().min(0).optional(),
+  unite_commande: z.string().max(50).optional(),
+  qte_min: z.number().min(0).optional(),
+  fournisseur_principal: z.boolean().optional(),
+})
+
 export const receptionnerLivraisonSchema = z.object({
   commandeId: z.string().uuid(),
   lignes: z.array(z.object({

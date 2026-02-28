@@ -27,23 +27,23 @@ export async function enregistrerPrix(data: {
   const { data: produit } = await (supabase as any)
     .from('produits')
     .select('prix_unitaire')
-    .eq('id', data.produit_id)
+    .eq('id', validated.produit_id)
     .eq('organization_id', organization_id)
     .single()
 
   const prixPrecedent = produit?.prix_unitaire ?? null
   const variationPct = prixPrecedent && prixPrecedent > 0
-    ? ((data.prix - prixPrecedent) / prixPrecedent) * 100
+    ? ((validated.prix - prixPrecedent) / prixPrecedent) * 100
     : null
 
   const { error } = await (supabase as any).from('prix_produit_historique').insert({
     organization_id,
-    produit_id: data.produit_id,
-    fournisseur_id: data.fournisseur_id ?? null,
-    prix: data.prix,
+    produit_id: validated.produit_id,
+    fournisseur_id: validated.fournisseur_id ?? null,
+    prix: validated.prix,
     prix_precedent: prixPrecedent,
     variation_pct: variationPct ? Math.round(variationPct * 100) / 100 : null,
-    source: data.source ?? 'manuel',
+    source: validated.source ?? 'manuel',
     date_releve: new Date().toISOString().slice(0, 10),
   })
 

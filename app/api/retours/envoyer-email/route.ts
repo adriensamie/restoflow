@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 import { Resend } from 'resend'
 import { getRetourDetail, envoyerRetour } from '@/lib/actions/retours'
 import { generateBonRetourPDF } from '@/lib/pdf/bon-retour'
@@ -10,8 +11,11 @@ function getResend() {
 
 export const POST = withRateLimit(async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth()
+    if (!userId) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
     const { retourId } = await req.json()
-    if (!retourId) return NextResponse.json({ error: 'retourId manquant' }, { status: 400 })
+    if (!retourId || typeof retourId !== 'string') return NextResponse.json({ error: 'retourId manquant' }, { status: 400 })
 
     const retour = await getRetourDetail(retourId)
     if (!retour) return NextResponse.json({ error: 'Retour introuvable' }, { status: 404 })
@@ -40,6 +44,9 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
 
     const pdfBuffer = Buffer.from(pdfData)
 
+    // Role check before sending email (envoyerRetour calls requireRole)
+    await envoyerRetour(retourId)
+
     await getResend().emails.send({
       from: 'RestoFlow <noreply@restoflow.fr>',
       to: email,
@@ -52,8 +59,6 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
         },
       ],
     })
-
-    await envoyerRetour(retourId)
 
     return NextResponse.json({ success: true })
   } catch (e: any) {

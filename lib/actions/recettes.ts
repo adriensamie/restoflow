@@ -3,7 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
-import { creerRecetteSchema, ajouterIngredientSchema } from '@/lib/validations/recettes'
+import { creerRecetteSchema, modifierRecetteSchema, ajouterIngredientSchema } from '@/lib/validations/recettes'
 import { requireRole } from '@/lib/rbac'
 
 export async function creerRecette(data: {
@@ -37,11 +37,12 @@ export async function modifierRecette(id: string, data: {
   allergenes?: string[] | null
   importe_ia?: boolean
 }) {
+  const validated = modifierRecetteSchema.parse(data)
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
-    .from('recettes').update(data).eq('id', id).eq('organization_id', organization_id)
+    .from('recettes').update(validated).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/recettes')
 }
@@ -108,7 +109,7 @@ export async function recalculerCouts(recetteId: string) {
     const prixHT = recette.prix_vente_ttc / 1.1
     foodCost = Math.round((coutPortion / prixHT) * 100 * 10) / 10
     marge = Math.round((1 - coutPortion / prixHT) * 100 * 10) / 10
-    coeff = Math.round((recette.prix_vente_ttc / coutPortion) * 10) / 10
+    coeff = coutPortion > 0 ? Math.round((recette.prix_vente_ttc / coutPortion) * 10) / 10 : null
   }
 
   const { error: updError } = await (supabase as any).from('recettes').update({
