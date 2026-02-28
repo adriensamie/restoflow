@@ -26,13 +26,18 @@ export async function getBilanJournee(date: string): Promise<BilanJournee> {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
+  // Compute next day for proper date range
+  const nextDay = new Date(date + 'T00:00:00')
+  nextDay.setDate(nextDay.getDate() + 1)
+  const nextDayStr = nextDay.toISOString().slice(0, 10)
+
   // CA & couverts from events_caisse
   const { data: events } = await (supabase as any)
     .from('events_caisse')
     .select('event_type, montant, nb_couverts')
     .eq('organization_id', organization_id)
     .gte('created_at', `${date}T00:00:00`)
-    .lt('created_at', `${date}T23:59:59`)
+    .lt('created_at', `${nextDayStr}T00:00:00`)
 
   const paiements = (events ?? []).filter((e: any) => e.event_type === 'paiement')
   const ca_total = paiements.reduce((a: number, e: any) => a + (e.montant || 0), 0)
@@ -47,7 +52,7 @@ export async function getBilanJournee(date: string): Promise<BilanJournee> {
     .eq('organization_id', organization_id)
     .eq('type', 'perte')
     .gte('created_at', `${date}T00:00:00`)
-    .lt('created_at', `${date}T23:59:59`)
+    .lt('created_at', `${nextDayStr}T00:00:00`)
 
   const pertes_montant = (pertes ?? []).reduce((a: number, p: any) => a + (p.quantite * (p.prix_unitaire || 0)), 0)
 
@@ -58,7 +63,7 @@ export async function getBilanJournee(date: string): Promise<BilanJournee> {
     .eq('organization_id', organization_id)
     .eq('type', 'entree')
     .gte('created_at', `${date}T00:00:00`)
-    .lt('created_at', `${date}T23:59:59`)
+    .lt('created_at', `${nextDayStr}T00:00:00`)
 
   const food_cost_montant = (entrees ?? []).reduce((a: number, e: any) => a + (e.quantite * (e.prix_unitaire || 0)), 0)
   const food_cost_pct = ca_total > 0 ? (food_cost_montant / ca_total) * 100 : 0
@@ -69,7 +74,7 @@ export async function getBilanJournee(date: string): Promise<BilanJournee> {
     .select('resultat')
     .eq('organization_id', organization_id)
     .gte('created_at', `${date}T00:00:00`)
-    .lt('created_at', `${date}T23:59:59`)
+    .lt('created_at', `${nextDayStr}T00:00:00`)
 
   const nb_releves_haccp = (releves ?? []).length
   const nb_non_conformes = (releves ?? []).filter((r: any) => r.resultat === 'non_conforme').length

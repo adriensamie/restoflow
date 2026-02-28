@@ -22,9 +22,8 @@ const COULEURS = [
 interface Employe {
   id: string; prenom: string; nom: string; poste: string
   email: string | null; telephone: string | null
-  couleur: string; taux_horaire: number | null
+  couleur: string | null; taux_horaire: number | null
   heures_contrat: number; actif: boolean
-  contrats: any[]
 }
 
 export function EquipeClient({ employes: init }: { employes: Employe[] }) {
@@ -45,7 +44,7 @@ export function EquipeClient({ employes: init }: { employes: Employe[] }) {
     setForm({
       prenom: emp.prenom, nom: emp.nom, poste: emp.poste,
       email: emp.email || '', telephone: emp.telephone || '',
-      couleur: emp.couleur, taux_horaire: emp.taux_horaire?.toString() || '',
+      couleur: emp.couleur || COULEURS[0], taux_horaire: emp.taux_horaire?.toString() || '',
       heures_contrat: emp.heures_contrat?.toString() || '35',
     })
     setShowModal(true)
@@ -159,7 +158,7 @@ export function EquipeClient({ employes: init }: { employes: Employe[] }) {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                    style={{ background: emp.couleur }}>
+                    style={{ background: emp.couleur || '#6366f1' }}>
                     {emp.prenom.charAt(0)}{emp.nom.charAt(0)}
                   </div>
                   <div>

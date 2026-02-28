@@ -16,12 +16,12 @@ export async function creerRecette(data: {
   allergenes?: string[]
   importe_ia?: boolean
 }) {
-  creerRecetteSchema.parse(data)
+  const validated = creerRecetteSchema.parse(data)
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { data: result, error } = await (supabase as any)
-    .from('recettes').insert({ ...data, organization_id }).select().single()
+    .from('recettes').insert({ ...validated, organization_id }).select().single()
   if (error) throw new Error(error.message)
   revalidatePath('/recettes')
   return result
@@ -56,14 +56,14 @@ export async function ajouterIngredient(data: {
   cout_unitaire?: number
   ordre?: number
 }) {
-  ajouterIngredientSchema.parse(data)
+  const validated = ajouterIngredientSchema.parse(data)
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
-    .from('recette_ingredients').insert({ ...data, organization_id })
+    .from('recette_ingredients').insert({ ...validated, organization_id })
   if (error) throw new Error(error.message)
-  await recalculerCouts(data.recette_id)
+  await recalculerCouts(validated.recette_id)
   revalidatePath('/recettes')
 }
 

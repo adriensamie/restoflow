@@ -66,8 +66,8 @@ export function NouvelleCommandeModal({ fournisseurs, blPreRempli, onClose }: Pr
           fournisseur_id: fournisseurId,
           date_livraison_prevue: dateLivraison || undefined,
           note: note || undefined,
-          lignes: lignes.map(l => ({
-            produit_id: l.produit_id || '00000000-0000-0000-0000-000000000000',
+          lignes: lignes.filter(l => l.produit_id).map(l => ({
+            produit_id: l.produit_id,
             quantite_commandee: l.quantite_commandee,
             prix_unitaire: l.prix_unitaire,
           })),

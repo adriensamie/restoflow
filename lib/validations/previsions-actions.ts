@@ -11,7 +11,11 @@ export const sauvegarderPrevisionSchema = z.object({
   est_vacances: z.boolean().optional(),
   evenement_local: z.string().max(200).optional(),
   confiance: z.enum(['basse', 'moyenne', 'haute']).optional(),
-  produits_prioritaires: z.array(z.any()).optional(),
+  produits_prioritaires: z.array(z.object({
+    produit_id: z.string().uuid(),
+    nom: z.string().max(200).optional(),
+    quantite: z.number().min(0).optional(),
+  })).max(50).optional(),
 })
 
 export const sauvegarderReelSchema = z.object({

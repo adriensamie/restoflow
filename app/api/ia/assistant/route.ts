@@ -40,7 +40,21 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Messages manquants' }, { status: 400 })
     }
 
+    // Limit message count and content size to prevent cost abuse
+    if (messages.length > 50) {
+      return NextResponse.json({ error: 'Trop de messages (max 50)' }, { status: 400 })
+    }
+    for (const m of messages) {
+      if (typeof m.content === 'string' && m.content.length > 10000) {
+        return NextResponse.json({ error: 'Message trop long (max 10000 caractères)' }, { status: 400 })
+      }
+    }
+
     // Build the system prompt with injected context
+    const contexteStr = contexte ? JSON.stringify(contexte) : ''
+    if (contexteStr.length > 5000) {
+      return NextResponse.json({ error: 'Contexte trop volumineux' }, { status: 400 })
+    }
     const contextBlock = contexte
       ? `\n\nVoici les données temps réel du restaurant "${contexte.restaurant ?? 'inconnu'}" (${contexte.date ?? 'date inconnue'}) :\n${JSON.stringify(contexte, null, 2)}`
       : ''

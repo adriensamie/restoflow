@@ -102,7 +102,7 @@ export async function majStatutRetour(retourId: string, statut: string) {
   const { error } = await (supabase as any)
     .from('retours_fournisseur')
     .update({ statut: validated.statut })
-    .eq('id', retourId)
+    .eq('id', validated.retour_id)
     .eq('organization_id', organization_id)
 
   if (error) throw new Error(error.message)

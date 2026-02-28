@@ -56,7 +56,7 @@ export default async function DashboardPage() {
 
       {error && (
         <div className="rounded-lg p-4" style={{ background: '#1a0a0a', border: '1px solid #7f1d1d' }}>
-          <p className="text-sm" style={{ color: '#f87171' }}>Erreur : {error.message}</p>
+          <p className="text-sm" style={{ color: '#f87171' }}>Impossible de charger les données</p>
         </div>
       )}
 
