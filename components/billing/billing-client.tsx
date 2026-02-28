@@ -58,9 +58,11 @@ const plans = [
 
 export function BillingClient({ currentPlan, subscriptionStatus, daysLeft }: BillingClientProps) {
   const [loading, setLoading] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleCheckout(plan: 'starter' | 'pro' | 'enterprise') {
     setLoading(plan)
+    setError(null)
     try {
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
@@ -68,7 +70,13 @@ export function BillingClient({ currentPlan, subscriptionStatus, daysLeft }: Bil
         body: JSON.stringify({ plan }),
       })
       const data = await res.json()
-      if (data.url) window.location.href = data.url
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setError(data.error || 'Erreur lors de la création du paiement')
+      }
+    } catch {
+      setError('Impossible de contacter le serveur')
     } finally {
       setLoading(null)
     }
@@ -76,10 +84,17 @@ export function BillingClient({ currentPlan, subscriptionStatus, daysLeft }: Bil
 
   async function handlePortal() {
     setLoading('portal')
+    setError(null)
     try {
       const res = await fetch('/api/billing/portal', { method: 'POST' })
       const data = await res.json()
-      if (data.url) window.location.href = data.url
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setError(data.error || 'Erreur lors de l\'ouverture du portail')
+      }
+    } catch {
+      setError('Impossible de contacter le serveur')
     } finally {
       setLoading(null)
     }
@@ -87,6 +102,13 @@ export function BillingClient({ currentPlan, subscriptionStatus, daysLeft }: Bil
 
   return (
     <div>
+      {/* Error banner */}
+      {error && (
+        <div className="rounded-xl p-4 mb-6 text-sm" style={{ background: '#1a0505', border: '1px solid #7f1d1d', color: '#fca5a5' }}>
+          {error}
+        </div>
+      )}
+
       {/* Current plan info */}
       <div className="rounded-xl p-5 mb-8" style={{ background: '#0f1729', border: '1px solid #1e2d4a' }}>
         <div className="flex items-center justify-between">
