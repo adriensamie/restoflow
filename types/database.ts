@@ -30,6 +30,8 @@ export interface Database {
           seuil_ecart_livraison: number
           timezone: string
           devise: string
+          taux_tva: number
+          taux_charges_salariales: number
           created_at: string
           updated_at: string
         }
@@ -52,6 +54,8 @@ export interface Database {
           seuil_ecart_livraison?: number
           timezone?: string
           devise?: string
+          taux_tva?: number
+          taux_charges_salariales?: number
           created_at?: string
           updated_at?: string
         }
@@ -1017,6 +1021,10 @@ export interface Database {
       }
       init_haccp_templates: {
         Args: { org_id: string }
+        Returns: void
+      }
+      increment_vin_stock: {
+        Args: { p_vin_id: string; p_org_id: string; p_delta: number }
         Returns: void
       }
     }

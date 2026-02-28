@@ -73,26 +73,25 @@ export async function ajouterMouvementCave(data: {
     .from('mouvements_cave').insert({ ...validated, organization_id })
   if (error) throw new Error(error.message)
 
-  const { data: vin, error: vinError } = await (supabase as any)
-    .from('vins').select('stock_bouteilles').eq('id', validated.vin_id).eq('organization_id', organization_id).single()
-  if (vinError) throw new Error(vinError.message)
-
-  if (vin) {
-    let delta = 0
-    if (validated.type === 'entree') delta = validated.quantite
-    if (validated.type === 'sortie_bouteille' || validated.type === 'sortie_verre' || validated.type === 'casse') delta = -validated.quantite
-    if (validated.type === 'inventaire') {
-      const { error: updErr } = await (supabase as any).from('vins')
-        .update({ stock_bouteilles: validated.quantite }).eq('id', validated.vin_id).eq('organization_id', organization_id)
-      if (updErr) throw new Error(updErr.message)
-      revalidatePath('/cave')
-      return
-    }
-    // TODO: remplacer par un UPDATE atomique côté DB (stock_bouteilles = stock_bouteilles + delta)
+  if (validated.type === 'inventaire') {
     const { error: updErr } = await (supabase as any).from('vins')
-      .update({ stock_bouteilles: Math.max(0, (vin.stock_bouteilles || 0) + delta) })
-      .eq('id', validated.vin_id).eq('organization_id', organization_id)
+      .update({ stock_bouteilles: validated.quantite }).eq('id', validated.vin_id).eq('organization_id', organization_id)
     if (updErr) throw new Error(updErr.message)
+    revalidatePath('/cave')
+    return
+  }
+
+  let delta = 0
+  if (validated.type === 'entree') delta = validated.quantite
+  if (validated.type === 'sortie_bouteille' || validated.type === 'sortie_verre' || validated.type === 'casse') delta = -validated.quantite
+
+  if (delta !== 0) {
+    const { error: rpcErr } = await (supabase as any).rpc('increment_vin_stock', {
+      p_vin_id: validated.vin_id,
+      p_org_id: organization_id,
+      p_delta: delta,
+    })
+    if (rpcErr) throw new Error(rpcErr.message)
   }
   revalidatePath('/cave')
 }

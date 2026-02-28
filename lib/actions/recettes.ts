@@ -97,6 +97,10 @@ export async function recalculerCouts(recetteId: string) {
 
   if (!recette) return
 
+  const { data: org } = await (supabase as any)
+    .from('organizations').select('taux_tva').eq('id', organization_id).single()
+  const tauxTva = org?.taux_tva ?? 10
+
   const coutIngredients = (ingredients || []).reduce((acc: number, i: any) =>
     acc + (i.quantite * (i.cout_unitaire || 0)), 0)
 
@@ -106,7 +110,7 @@ export async function recalculerCouts(recetteId: string) {
 
   let foodCost = null, marge = null, coeff = null
   if (recette.prix_vente_ttc && recette.prix_vente_ttc > 0) {
-    const prixHT = recette.prix_vente_ttc / 1.1
+    const prixHT = recette.prix_vente_ttc / (1 + tauxTva / 100)
     foodCost = Math.round((coutPortion / prixHT) * 100 * 10) / 10
     marge = Math.round((1 - coutPortion / prixHT) * 100 * 10) / 10
     coeff = coutPortion > 0 ? Math.round((recette.prix_vente_ttc / coutPortion) * 10) / 10 : null

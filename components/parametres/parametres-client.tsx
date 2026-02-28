@@ -28,6 +28,8 @@ export function ParametresClient({ organisation }: { organisation: any }) {
     siret: organisation?.siret || '',
     timezone: organisation?.timezone || 'Europe/Paris',
     devise: organisation?.devise || 'EUR',
+    taux_tva: organisation?.taux_tva ?? 10,
+    taux_charges_salariales: organisation?.taux_charges_salariales ?? 22,
   })
 
   const set = (key: string, val: any) => setForm(f => ({ ...f, [key]: val }))
@@ -146,6 +148,18 @@ export function ParametresClient({ organisation }: { organisation: any }) {
                 <div>
                   <label style={labelStyle}>SIRET</label>
                   <input value={form.siret} onChange={e => set('siret', e.target.value)} style={inputStyle} placeholder="123 456 789 00010" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label style={labelStyle}>Taux de TVA (%)</label>
+                    <input type="number" min={0} max={100} step={0.1} value={form.taux_tva} onChange={e => set('taux_tva', parseFloat(e.target.value) || 0)} style={inputStyle} placeholder="10" />
+                    <p className="text-xs mt-1" style={{ color: '#3b5280' }}>Utilisé pour le calcul du food cost (HT)</p>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Taux de charges salariales (%)</label>
+                    <input type="number" min={0} max={100} step={0.1} value={form.taux_charges_salariales} onChange={e => set('taux_charges_salariales', parseFloat(e.target.value) || 0)} style={inputStyle} placeholder="22" />
+                    <p className="text-xs mt-1" style={{ color: '#3b5280' }}>Utilisé pour le calcul des fiches de paie</p>
+                  </div>
                 </div>
               </div>
             </>

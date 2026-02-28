@@ -36,8 +36,12 @@ export async function creerFichePaie(data: {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  // Calculer net estimé (charges salariales ~22%)
-  const cotisations = Math.round(validated.salaire_brut * 0.22 * 100) / 100
+  // Lire le taux de charges salariales depuis l'org
+  const { data: org } = await (supabase as any)
+    .from('organizations').select('taux_charges_salariales').eq('id', organization_id).single()
+  const tauxCharges = (org?.taux_charges_salariales ?? 22) / 100
+
+  const cotisations = Math.round(validated.salaire_brut * tauxCharges * 100) / 100
   const salaire_net = Math.round((validated.salaire_brut - cotisations) * 100) / 100
 
   const { data: result, error } = await (supabase as any)
@@ -120,6 +124,11 @@ export async function genererFichesDepuisPlanning(mois: string) {
     .in('id', Object.keys(parEmploye))
   if (empError) throw new Error(empError.message)
 
+  // Lire le taux de charges salariales depuis l'org
+  const { data: org } = await (supabase as any)
+    .from('organizations').select('taux_charges_salariales').eq('id', organization_id).single()
+  const tauxCharges = (org?.taux_charges_salariales ?? 22) / 100
+
   const fiches = []
   for (const emp of (employes || [])) {
     const stats = parEmploye[emp.id]
@@ -136,8 +145,8 @@ export async function genererFichesDepuisPlanning(mois: string) {
       heures_normales: Math.min(stats.heures, heuresMois),
       heures_sup: heuresSup,
       salaire_brut: brut,
-      cotisations: Math.round(brut * 0.22 * 100) / 100,
-      salaire_net: Math.round(brut * 0.78 * 100) / 100,
+      cotisations: Math.round(brut * tauxCharges * 100) / 100,
+      salaire_net: Math.round(brut * (1 - tauxCharges) * 100) / 100,
     }, { onConflict: 'organization_id,employe_id,mois' })
 
     if (error) {

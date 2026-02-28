@@ -13,6 +13,8 @@ export async function sauvegarderParametres(data: {
   siret?: string
   timezone?: string
   devise?: string
+  taux_tva?: number
+  taux_charges_salariales?: number
 }) {
   const validated = sauvegarderParametresSchema.parse(data)
   const staff = await requireRole(['patron'])
@@ -28,6 +30,8 @@ export async function sauvegarderParametres(data: {
       siret: validated.siret,
       timezone: validated.timezone || 'Europe/Paris',
       devise: validated.devise || 'EUR',
+      taux_tva: validated.taux_tva ?? 10,
+      taux_charges_salariales: validated.taux_charges_salariales ?? 22,
       updated_at: new Date().toISOString(),
     })
     .eq('id', staff.orgId)
