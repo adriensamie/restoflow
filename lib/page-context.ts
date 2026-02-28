@@ -12,7 +12,7 @@ export async function getPageContext() {
 
   if (!orgId) redirect('/onboarding')
 
-  const { data: org } = await (supabase as any)
+  const { data: org } = await supabase
     .from('organizations')
     .select('id')
     .eq('clerk_org_id', orgId)

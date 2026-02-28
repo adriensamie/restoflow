@@ -15,7 +15,7 @@ export async function creerSessionInventaire(data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { data: result, error } = await (supabase as any)
+  const { data: result, error } = await supabase
     .from('sessions_inventaire')
     .insert({ ...validated, organization_id }).select().single()
   if (error) throw new Error(error.message)
@@ -37,7 +37,7 @@ export async function sauvegarderLigneInventaire(data: {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   if (validated.produit_id) {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('lignes_inventaire')
       .upsert(
         { ...validated, organization_id, counted_at: new Date().toISOString() },
@@ -45,7 +45,7 @@ export async function sauvegarderLigneInventaire(data: {
       )
     if (error) throw new Error(error.message)
   } else if (validated.vin_id) {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('lignes_inventaire')
       .upsert(
         { ...validated, organization_id, counted_at: new Date().toISOString() },
@@ -62,7 +62,7 @@ export async function validerInventaire(sessionId: string) {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { data: lignes, error: lignesError } = await (supabase as any)
+  const { data: lignes, error: lignesError } = await supabase
     .from('lignes_inventaire')
     .select('*')
     .eq('session_id', sessionId)
@@ -74,7 +74,7 @@ export async function validerInventaire(sessionId: string) {
 
   for (const ligne of lignes) {
     if (ligne.produit_id && ligne.quantite_comptee !== null) {
-      const { error: mvtError } = await (supabase as any).from('mouvements_stock').insert({
+      const { error: mvtError } = await supabase.from('mouvements_stock').insert({
         produit_id: ligne.produit_id,
         organization_id,
         type: 'inventaire',
@@ -84,14 +84,14 @@ export async function validerInventaire(sessionId: string) {
       if (mvtError) throw new Error(mvtError.message)
     }
     if (ligne.vin_id && ligne.quantite_comptee !== null) {
-      const { error: vinError } = await (supabase as any).from('vins')
+      const { error: vinError } = await supabase.from('vins')
         .update({ stock_bouteilles: Math.round(ligne.quantite_comptee) })
         .eq('id', ligne.vin_id).eq('organization_id', organization_id)
       if (vinError) throw new Error(vinError.message)
     }
   }
 
-  const { error: sessError } = await (supabase as any).from('sessions_inventaire')
+  const { error: sessError } = await supabase.from('sessions_inventaire')
     .update({ statut: 'valide', validated_at: new Date().toISOString() })
     .eq('id', sessionId).eq('organization_id', organization_id)
   if (sessError) throw new Error(sessError.message)
@@ -106,7 +106,7 @@ export async function annulerInventaire(sessionId: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any).from('sessions_inventaire')
+  const { error } = await supabase.from('sessions_inventaire')
     .update({ statut: 'annule' }).eq('id', sessionId).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/inventaire')

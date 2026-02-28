@@ -20,7 +20,7 @@ export async function creerRecette(data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { data: result, error } = await (supabase as any)
+  const { data: result, error } = await supabase
     .from('recettes').insert({ ...validated, organization_id }).select().single()
   if (error) throw new Error(error.message)
   revalidatePath('/recettes')
@@ -41,7 +41,7 @@ export async function modifierRecette(id: string, data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('recettes').update(validated).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/recettes')
@@ -60,7 +60,7 @@ export async function ajouterIngredient(data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('recette_ingredients').insert({ ...validated, organization_id })
   if (error) throw new Error(error.message)
   await recalculerCouts(validated.recette_id)
@@ -71,7 +71,7 @@ export async function supprimerIngredient(id: string, recetteId: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('recette_ingredients').delete().eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   await recalculerCouts(recetteId)
@@ -83,21 +83,21 @@ export async function recalculerCouts(recetteId: string) {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { data: ingredients, error: ingError } = await (supabase as any)
+  const { data: ingredients, error: ingError } = await supabase
     .from('recette_ingredients')
     .select('quantite, cout_unitaire')
     .eq('recette_id', recetteId)
     .eq('organization_id', organization_id)
   if (ingError) throw new Error(ingError.message)
 
-  const { data: recette, error: recError } = await (supabase as any)
+  const { data: recette, error: recError } = await supabase
     .from('recettes').select('prix_vente_ttc, pourcentage_ficelles, nb_portions')
     .eq('id', recetteId).eq('organization_id', organization_id).single()
   if (recError) throw new Error(recError.message)
 
   if (!recette) return
 
-  const { data: org } = await (supabase as any)
+  const { data: org } = await supabase
     .from('organizations').select('taux_tva').eq('id', organization_id).single()
   const tauxTva = org?.taux_tva ?? 10
 
@@ -116,7 +116,7 @@ export async function recalculerCouts(recetteId: string) {
     coeff = coutPortion > 0 ? Math.round((recette.prix_vente_ttc / coutPortion) * 10) / 10 : null
   }
 
-  const { error: updError } = await (supabase as any).from('recettes').update({
+  const { error: updError } = await supabase.from('recettes').update({
     cout_matiere: coutPortion,
     food_cost_pct: foodCost,
     marge_pct: marge,
@@ -129,7 +129,7 @@ export async function archiverRecette(id: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('recettes').update({ actif: false }).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/recettes')
@@ -139,14 +139,14 @@ export async function supprimerRecette(id: string) {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   // Supprimer d'abord les ingrédients
-  const { error: ingError } = await (supabase as any)
+  const { error: ingError } = await supabase
     .from('recette_ingredients')
     .delete()
     .eq('recette_id', id)
     .eq('organization_id', organization_id)
   if (ingError) throw new Error(ingError.message)
   // Puis la recette
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('recettes')
     .delete()
     .eq('id', id)

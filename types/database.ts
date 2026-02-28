@@ -60,6 +60,7 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Database['public']['Tables']['organizations']['Insert']>
+        Relationships: []
       }
 
       staff: {
@@ -105,6 +106,7 @@ export interface Database {
           actif?: boolean
         }
         Update: Partial<Database['public']['Tables']['staff']['Insert']>
+        Relationships: []
       }
 
       produits: {
@@ -135,6 +137,7 @@ export interface Database {
           actif?: boolean
         }
         Update: Partial<Database['public']['Tables']['produits']['Insert']>
+        Relationships: []
       }
 
       mouvements_stock: {
@@ -162,6 +165,15 @@ export interface Database {
           created_by?: string | null
         }
         Update: Partial<Database['public']['Tables']['mouvements_stock']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "mouvements_stock_produit_id_fkey"
+            columns: ["produit_id"]
+            isOneToOne: false
+            referencedRelation: "produits"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       fournisseurs: {
@@ -198,6 +210,7 @@ export interface Database {
           actif?: boolean
         }
         Update: Partial<Database['public']['Tables']['fournisseurs']['Insert']>
+        Relationships: []
       }
 
       produit_fournisseur: {
@@ -229,6 +242,22 @@ export interface Database {
           unite_reference?: string | null
         }
         Update: Partial<Database['public']['Tables']['produit_fournisseur']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "produit_fournisseur_produit_id_fkey"
+            columns: ["produit_id"]
+            isOneToOne: false
+            referencedRelation: "produits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produit_fournisseur_fournisseur_id_fkey"
+            columns: ["fournisseur_id"]
+            isOneToOne: false
+            referencedRelation: "fournisseurs"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       commandes: {
@@ -257,6 +286,15 @@ export interface Database {
           note?: string | null
         }
         Update: Partial<Database['public']['Tables']['commandes']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "commandes_fournisseur_id_fkey"
+            columns: ["fournisseur_id"]
+            isOneToOne: false
+            referencedRelation: "fournisseurs"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       commande_lignes: {
@@ -280,6 +318,22 @@ export interface Database {
           note_ecart?: string | null
         }
         Update: Partial<Database['public']['Tables']['commande_lignes']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "commande_lignes_commande_id_fkey"
+            columns: ["commande_id"]
+            isOneToOne: false
+            referencedRelation: "commandes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commande_lignes_produit_id_fkey"
+            columns: ["produit_id"]
+            isOneToOne: false
+            referencedRelation: "produits"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       vins: {
@@ -320,6 +374,15 @@ export interface Database {
           actif?: boolean
         }
         Update: Partial<Database['public']['Tables']['vins']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "vins_fournisseur_id_fkey"
+            columns: ["fournisseur_id"]
+            isOneToOne: false
+            referencedRelation: "fournisseurs"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       mouvements_cave: {
@@ -343,6 +406,15 @@ export interface Database {
           note?: string | null
         }
         Update: Partial<Database['public']['Tables']['mouvements_cave']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "mouvements_cave_vin_id_fkey"
+            columns: ["vin_id"]
+            isOneToOne: false
+            referencedRelation: "vins"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       sessions_inventaire: {
@@ -366,6 +438,7 @@ export interface Database {
           validated_at?: string | null
         }
         Update: Partial<Database['public']['Tables']['sessions_inventaire']['Insert']>
+        Relationships: []
       }
 
       lignes_inventaire: {
@@ -394,6 +467,29 @@ export interface Database {
           counted_at?: string | null
         }
         Update: Partial<Database['public']['Tables']['lignes_inventaire']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "lignes_inventaire_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions_inventaire"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_inventaire_produit_id_fkey"
+            columns: ["produit_id"]
+            isOneToOne: false
+            referencedRelation: "produits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_inventaire_vin_id_fkey"
+            columns: ["vin_id"]
+            isOneToOne: false
+            referencedRelation: "vins"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       config_caisse: {
@@ -420,6 +516,7 @@ export interface Database {
           alertes_actives?: boolean
         }
         Update: Partial<Database['public']['Tables']['config_caisse']['Insert']>
+        Relationships: []
       }
 
       events_caisse: {
@@ -449,6 +546,7 @@ export interface Database {
           source: string
         }
         Update: Partial<Database['public']['Tables']['events_caisse']['Insert']>
+        Relationships: []
       }
 
       objectifs_kpi: {
@@ -472,6 +570,7 @@ export interface Database {
           ca_cible?: number | null
         }
         Update: Partial<Database['public']['Tables']['objectifs_kpi']['Insert']>
+        Relationships: []
       }
 
       snapshots_food_cost: {
@@ -505,6 +604,7 @@ export interface Database {
           ticket_moyen?: number | null
         }
         Update: Partial<Database['public']['Tables']['snapshots_food_cost']['Insert']>
+        Relationships: []
       }
 
       previsions: {
@@ -546,6 +646,7 @@ export interface Database {
           ca_reel?: number | null
         }
         Update: Partial<Database['public']['Tables']['previsions']['Insert']>
+        Relationships: []
       }
 
       recettes: {
@@ -586,6 +687,7 @@ export interface Database {
           actif?: boolean
         }
         Update: Partial<Database['public']['Tables']['recettes']['Insert']>
+        Relationships: []
       }
 
       recette_ingredients: {
@@ -613,6 +715,29 @@ export interface Database {
           ordre?: number | null
         }
         Update: Partial<Database['public']['Tables']['recette_ingredients']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "recette_ingredients_recette_id_fkey"
+            columns: ["recette_id"]
+            isOneToOne: false
+            referencedRelation: "recettes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recette_ingredients_produit_id_fkey"
+            columns: ["produit_id"]
+            isOneToOne: false
+            referencedRelation: "produits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recette_ingredients_vin_id_fkey"
+            columns: ["vin_id"]
+            isOneToOne: false
+            referencedRelation: "vins"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       employes: {
@@ -645,6 +770,7 @@ export interface Database {
           actif?: boolean
         }
         Update: Partial<Database['public']['Tables']['employes']['Insert']>
+        Relationships: []
       }
 
       creneaux_planning: {
@@ -676,6 +802,15 @@ export interface Database {
           cout_prevu?: number | null
         }
         Update: Partial<Database['public']['Tables']['creneaux_planning']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "creneaux_planning_employe_id_fkey"
+            columns: ["employe_id"]
+            isOneToOne: false
+            referencedRelation: "employes"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       fiches_paie: {
@@ -715,6 +850,15 @@ export interface Database {
           validated_at?: string | null
         }
         Update: Partial<Database['public']['Tables']['fiches_paie']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "fiches_paie_employe_id_fkey"
+            columns: ["employe_id"]
+            isOneToOne: false
+            referencedRelation: "employes"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       haccp_releves: {
@@ -748,6 +892,15 @@ export interface Database {
           employe_nom?: string | null
         }
         Update: Partial<Database['public']['Tables']['haccp_releves']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "haccp_releves_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_templates"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       haccp_templates: {
@@ -777,6 +930,7 @@ export interface Database {
           actif?: boolean
         }
         Update: Partial<Database['public']['Tables']['haccp_templates']['Insert']>
+        Relationships: []
       }
 
       role_permissions: {
@@ -797,6 +951,7 @@ export interface Database {
           allowed_actions?: string[]
         }
         Update: Partial<Database['public']['Tables']['role_permissions']['Insert']>
+        Relationships: []
       }
 
       pin_sessions: {
@@ -816,6 +971,7 @@ export interface Database {
           expires_at: string
         }
         Update: Partial<Database['public']['Tables']['pin_sessions']['Insert']>
+        Relationships: []
       }
 
       retours_fournisseur: {
@@ -844,6 +1000,22 @@ export interface Database {
           envoye_par_email?: boolean
         }
         Update: Partial<Database['public']['Tables']['retours_fournisseur']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "retours_fournisseur_fournisseur_id_fkey"
+            columns: ["fournisseur_id"]
+            isOneToOne: false
+            referencedRelation: "fournisseurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "retours_fournisseur_commande_id_fkey"
+            columns: ["commande_id"]
+            isOneToOne: false
+            referencedRelation: "commandes"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       lignes_retour: {
@@ -865,6 +1037,22 @@ export interface Database {
           motif?: string | null
         }
         Update: Partial<Database['public']['Tables']['lignes_retour']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "lignes_retour_retour_id_fkey"
+            columns: ["retour_id"]
+            isOneToOne: false
+            referencedRelation: "retours_fournisseur"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_retour_produit_id_fkey"
+            columns: ["produit_id"]
+            isOneToOne: false
+            referencedRelation: "produits"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       notifications: {
@@ -892,6 +1080,7 @@ export interface Database {
           canal?: string[]
         }
         Update: Partial<Database['public']['Tables']['notifications']['Insert']>
+        Relationships: []
       }
 
       notification_preferences: {
@@ -914,6 +1103,7 @@ export interface Database {
           email?: boolean
         }
         Update: Partial<Database['public']['Tables']['notification_preferences']['Insert']>
+        Relationships: []
       }
 
       push_subscriptions: {
@@ -935,6 +1125,7 @@ export interface Database {
           auth_key: string
         }
         Update: Partial<Database['public']['Tables']['push_subscriptions']['Insert']>
+        Relationships: []
       }
 
       prix_produit_historique: {
@@ -964,6 +1155,7 @@ export interface Database {
           commande_id?: string | null
         }
         Update: Partial<Database['public']['Tables']['prix_produit_historique']['Insert']>
+        Relationships: []
       }
 
       lots_produit: {
@@ -990,6 +1182,7 @@ export interface Database {
           statut?: 'actif' | 'consomme' | 'expire' | 'jete'
         }
         Update: Partial<Database['public']['Tables']['lots_produit']['Insert']>
+        Relationships: []
       }
     }
 
@@ -1007,6 +1200,7 @@ export interface Database {
           derniere_maj: string | null
           en_alerte: boolean
         }
+        Relationships: []
       }
     }
 

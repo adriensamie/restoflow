@@ -17,14 +17,14 @@ export default async function AlertesPage() {
     { data: previsions },
   ] = await Promise.all([
     // Stocks sous seuil d'alerte
-    (supabase as any)
+    supabase
       .from('stock_actuel')
       .select('produit_id, nom, categorie, quantite_actuelle, seuil_alerte, unite')
       .eq('organization_id', orgId)
       .eq('en_alerte', true)
       .order('quantite_actuelle'),
     // Pertes importantes ce mois
-    (supabase as any)
+    supabase
       .from('mouvements_stock')
       .select('quantite, prix_unitaire, motif, created_at, produits(nom)')
       .eq('organization_id', orgId)
@@ -33,7 +33,7 @@ export default async function AlertesPage() {
       .order('created_at', { ascending: false })
       .limit(20),
     // Non conformités HACCP
-    (supabase as any)
+    supabase
       .from('haccp_releves')
       .select('nom_controle, resultat, action_corrective, created_at')
       .eq('organization_id', orgId)
@@ -42,7 +42,7 @@ export default async function AlertesPage() {
       .order('created_at', { ascending: false })
       .limit(10),
     // Annulations suspectes caisse
-    (supabase as any)
+    supabase
       .from('events_caisse')
       .select('montant, employe_nom, created_at, motif')
       .eq('organization_id', orgId)
@@ -51,7 +51,7 @@ export default async function AlertesPage() {
       .order('montant', { ascending: false })
       .limit(10),
     // Prévisions non saisies
-    (supabase as any)
+    supabase
       .from('previsions')
       .select('date_prevision, couverts_midi, couverts_soir, ca_prevu, ca_reel')
       .eq('organization_id', orgId)

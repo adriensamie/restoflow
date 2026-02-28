@@ -26,7 +26,7 @@ export async function creerVin(data: {
   const validated = creerVinSchema.parse(data)
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { data: result, error } = await (supabase as any)
+  const { data: result, error } = await supabase
     .from('vins').insert({ ...validated, organization_id }).select().single()
   if (error) throw new Error(error.message)
   revalidatePath('/cave')
@@ -51,7 +51,7 @@ export async function modifierVin(id: string, data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('vins').update(validated).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/cave')
@@ -69,12 +69,12 @@ export async function ajouterMouvementCave(data: {
   const validated = mouvementCaveSchema.parse(data)
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('mouvements_cave').insert({ ...validated, organization_id })
   if (error) throw new Error(error.message)
 
   if (validated.type === 'inventaire') {
-    const { error: updErr } = await (supabase as any).from('vins')
+    const { error: updErr } = await supabase.from('vins')
       .update({ stock_bouteilles: validated.quantite }).eq('id', validated.vin_id).eq('organization_id', organization_id)
     if (updErr) throw new Error(updErr.message)
     revalidatePath('/cave')
@@ -86,7 +86,7 @@ export async function ajouterMouvementCave(data: {
   if (validated.type === 'sortie_bouteille' || validated.type === 'sortie_verre' || validated.type === 'casse') delta = -validated.quantite
 
   if (delta !== 0) {
-    const { error: rpcErr } = await (supabase as any).rpc('increment_vin_stock', {
+    const { error: rpcErr } = await supabase.rpc('increment_vin_stock', {
       p_vin_id: validated.vin_id,
       p_org_id: organization_id,
       p_delta: delta,
@@ -101,7 +101,7 @@ export async function archiverVin(id: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('vins').update({ actif: false }).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/cave')

@@ -11,7 +11,7 @@ interface Fournisseur {
   contact_email: string | null
   contact_telephone: string | null
   adresse: string | null
-  delai_livraison: number
+  delai_livraison: number | null
   conditions_paiement: string | null
   produit_fournisseur: { count: number }[]
 }

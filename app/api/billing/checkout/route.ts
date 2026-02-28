@@ -35,7 +35,7 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
       metadata: { clerk_org_id: orgId, org_id: org.id },
     })
     customerId = customer.id
-    await (supabase as any)
+    await supabase
       .from('organizations')
       .update({ stripe_customer_id: customerId })
       .eq('id', org.id)

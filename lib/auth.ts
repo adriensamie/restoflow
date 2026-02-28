@@ -36,7 +36,7 @@ export async function getCurrentStaff(): Promise<{
     .single()
   if (!org) throw new Error('Organisation introuvable')
 
-  const { data: staff } = await (supabase as any)
+  const { data: staff } = await supabase
     .from('staff')
     .select('id, role, nom, prenom')
     .eq('organization_id', org.id)

@@ -6,7 +6,7 @@ export default async function FournisseursPage() {
   await requireRouteAccess('/fournisseurs')
   const { supabase, orgId } = await getPageContext()
 
-  const { data: fournisseurs } = await (supabase as any)
+  const { data: fournisseurs } = await supabase
     .from('fournisseurs')
     .select('*, produit_fournisseur(count)')
     .eq('actif', true)

@@ -31,7 +31,6 @@ export async function reinitialiserApplication() {
     'fiches_paie',
     'creneaux_planning',
     'employes',
-    'contrats',
     'snapshots_food_cost',
     'previsions',
     'events_caisse',
@@ -45,10 +44,10 @@ export async function reinitialiserApplication() {
     'fournisseurs',
     'vins',
     'produits',
-  ]
+  ] as const
 
   for (const table of tables) {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from(table)
       .delete()
       .eq('organization_id', id)

@@ -8,7 +8,7 @@ interface Props {
   fournisseur?: {
     id: string; nom: string; contact_nom?: string | null
     contact_email?: string | null; contact_telephone?: string | null
-    adresse?: string | null; delai_livraison?: number; conditions_paiement?: string | null
+    adresse?: string | null; delai_livraison?: number | null; conditions_paiement?: string | null
   }
   onClose: () => void
 }

@@ -6,7 +6,7 @@ export default async function EquipePage() {
   await requireRouteAccess('/equipe')
   const { supabase, orgId } = await getPageContext()
 
-  const { data: employes } = await (supabase as any)
+  const { data: employes } = await supabase
     .from('employes')
     .select('*')
     .eq('organization_id', orgId)

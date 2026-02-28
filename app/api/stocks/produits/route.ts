@@ -7,11 +7,11 @@ export async function GET() {
   const { orgId } = await auth()
   if (!orgId) return NextResponse.json([])
 
-  const { data: org } = await (supabase as any)
+  const { data: org } = await supabase
     .from('organizations').select('id').eq('clerk_org_id', orgId).single()
   if (!org?.id) return NextResponse.json([])
 
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('stock_actuel')
     .select('produit_id, nom, categorie, unite, quantite_actuelle')
     .eq('organization_id', org.id)

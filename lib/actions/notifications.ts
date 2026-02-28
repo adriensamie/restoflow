@@ -18,7 +18,7 @@ export async function getNotifications(limit = 50) {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('notifications')
     .select('*')
     .eq('organization_id', organization_id)
@@ -33,7 +33,7 @@ export async function getUnreadCount(): Promise<number> {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { count, error } = await (supabase as any)
+  const { count, error } = await supabase
     .from('notifications')
     .select('id', { count: 'exact', head: true })
     .eq('organization_id', organization_id)
@@ -47,7 +47,7 @@ export async function markAsRead(notificationId: string) {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('notifications')
     .update({ lue: true })
     .eq('id', notificationId)
@@ -60,7 +60,7 @@ export async function markAllAsRead() {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('notifications')
     .update({ lue: true })
     .eq('organization_id', organization_id)
@@ -73,7 +73,7 @@ export async function getNotificationPreferences() {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('notification_preferences')
     .select('*')
     .eq('organization_id', organization_id)
@@ -93,7 +93,7 @@ export async function updatePreference(data: {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('notification_preferences')
     .upsert({
       organization_id,

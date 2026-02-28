@@ -17,7 +17,7 @@ export async function setStaffPin(staffId: string, pin: string) {
   const organization_id = await getOrgUUID()
 
   const pinHash = await hashPin(pin)
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('staff')
     .update({ pin_hash: pinHash, pin_changed_at: new Date().toISOString() })
     .eq('id', staffId)
@@ -31,7 +31,7 @@ export async function removeStaffPin(staffId: string) {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('staff')
     .update({ pin_hash: null })
     .eq('id', staffId)
@@ -49,7 +49,7 @@ export async function authenticatePin(organizationId: string, staffId: string, p
 
   const supabase = await createServerSupabaseClient()
 
-  const { data: staff, error } = await (supabase as any)
+  const { data: staff, error } = await supabase
     .from('staff')
     .select('id, pin_hash, role, nom, prenom, organization_id, pin_changed_at')
     .eq('id', staffId)
@@ -85,14 +85,14 @@ export async function authenticatePinKiosk(organizationId: string, pin: string) 
   const supabase = await createServerSupabaseClient()
 
   // Verify org exists
-  const { data: org } = await (supabase as any)
+  const { data: org } = await supabase
     .from('organizations')
     .select('id')
     .eq('id', organizationId)
     .single()
   if (!org) throw new Error('Organisation introuvable')
 
-  const { data: staffList } = await (supabase as any)
+  const { data: staffList } = await supabase
     .from('staff')
     .select('id, pin_hash, nom, prenom, organization_id, pin_changed_at')
     .eq('organization_id', organizationId)
@@ -102,10 +102,10 @@ export async function authenticatePinKiosk(organizationId: string, pin: string) 
   if (!staffList || staffList.length === 0) throw new Error('Aucun employe avec PIN')
 
   for (const staff of staffList) {
-    const valid = await verifyPin(pin, staff.pin_hash)
+    const valid = await verifyPin(pin, staff.pin_hash!)
     if (valid) {
       // Fetch role separately (not exposed in kiosk list)
-      const { data: fullStaff } = await (supabase as any)
+      const { data: fullStaff } = await supabase
         .from('staff')
         .select('role')
         .eq('id', staff.id)
@@ -134,7 +134,7 @@ export async function validatePinSessionWithCheck() {
   // If session has pinChangedAt, verify staff hasn't changed PIN since
   if (session.pinChangedAt) {
     const supabase = await createServerSupabaseClient()
-    const { data: staff } = await (supabase as any)
+    const { data: staff } = await supabase
       .from('staff')
       .select('pin_changed_at')
       .eq('id', session.staffId)
@@ -161,14 +161,14 @@ export async function getStaffListForKiosk(organizationId: string) {
   const supabase = await createServerSupabaseClient()
 
   // Verify org exists
-  const { data: org } = await (supabase as any)
+  const { data: org } = await supabase
     .from('organizations')
     .select('id')
     .eq('id', organizationId)
     .single()
   if (!org) throw new Error('Organisation introuvable')
 
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('staff')
     .select('id, nom, prenom, initiales')
     .eq('organization_id', organizationId)

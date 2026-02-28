@@ -6,7 +6,7 @@ export default async function CavePage() {
   await requireRouteAccess('/cave')
   const { supabase, orgId } = await getPageContext()
 
-  const { data: vins } = await (supabase as any)
+  const { data: vins } = await supabase
     .from('vins')
     .select('id, nom, appellation, categorie, zone, prix_achat_ht, prix_vente_ttc, prix_verre_ttc, contenance_verre, vendu_au_verre, stock_bouteilles, seuil_alerte, fournisseurs(nom)')
     .eq('actif', true)

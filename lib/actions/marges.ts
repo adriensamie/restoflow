@@ -17,7 +17,7 @@ export async function sauvegarderObjectifs(data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('objectifs_kpi')
     .upsert({ ...validated, organization_id }, { onConflict: 'organization_id,mois' })
   if (error) throw new Error(error.message)
@@ -46,7 +46,7 @@ export async function sauvegarderSnapshot(data: {
   const ticketMoyen = validated.nb_couverts && validated.nb_couverts > 0
     ? Math.round((validated.ca_total / validated.nb_couverts) * 100) / 100 : null
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('snapshots_food_cost')
     .upsert({
       ...validated,

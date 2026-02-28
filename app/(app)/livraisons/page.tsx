@@ -6,7 +6,7 @@ export default async function LivraisonsPage() {
   await requireRouteAccess('/livraisons')
   const { supabase, orgId } = await getPageContext()
 
-  const { data: commandes } = await (supabase as any)
+  const { data: commandes } = await supabase
     .from('commandes')
     .select('*, fournisseurs(nom, contact_telephone, contact_email), commande_lignes(id, produit_id, quantite_commandee, quantite_recue, prix_unitaire, note_ecart, produits(nom, unite, categorie))')
     .eq('organization_id', orgId)

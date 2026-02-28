@@ -32,7 +32,7 @@ export async function getBilanJournee(date: string): Promise<BilanJournee> {
   const nextDayStr = nextDay.toISOString().slice(0, 10)
 
   // CA & couverts from events_caisse
-  const { data: events } = await (supabase as any)
+  const { data: events } = await supabase
     .from('events_caisse')
     .select('event_type, montant, nb_couverts')
     .eq('organization_id', organization_id)
@@ -46,7 +46,7 @@ export async function getBilanJournee(date: string): Promise<BilanJournee> {
   const ticket_moyen = nb_tickets > 0 ? ca_total / nb_tickets : 0
 
   // Pertes du jour
-  const { data: pertes } = await (supabase as any)
+  const { data: pertes } = await supabase
     .from('mouvements_stock')
     .select('quantite, prix_unitaire')
     .eq('organization_id', organization_id)
@@ -57,7 +57,7 @@ export async function getBilanJournee(date: string): Promise<BilanJournee> {
   const pertes_montant = (pertes ?? []).reduce((a: number, p: any) => a + (p.quantite * (p.prix_unitaire || 0)), 0)
 
   // Entrees stock (cout matieres)
-  const { data: entrees } = await (supabase as any)
+  const { data: entrees } = await supabase
     .from('mouvements_stock')
     .select('quantite, prix_unitaire')
     .eq('organization_id', organization_id)
@@ -69,7 +69,7 @@ export async function getBilanJournee(date: string): Promise<BilanJournee> {
   const food_cost_pct = ca_total > 0 ? (food_cost_montant / ca_total) * 100 : 0
 
   // HACCP
-  const { data: releves } = await (supabase as any)
+  const { data: releves } = await supabase
     .from('haccp_releves')
     .select('resultat')
     .eq('organization_id', organization_id)
@@ -80,7 +80,7 @@ export async function getBilanJournee(date: string): Promise<BilanJournee> {
   const nb_non_conformes = (releves ?? []).filter((r: any) => r.resultat === 'non_conforme').length
 
   // Equipe hours (planning)
-  const { data: creneaux } = await (supabase as any)
+  const { data: creneaux } = await supabase
     .from('creneaux_planning')
     .select('heure_debut, heure_fin, cout_prevu')
     .eq('organization_id', organization_id)

@@ -20,7 +20,7 @@ export async function sauvegarderConfigCaisse(data: {
   await requireRole(['patron'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('config_caisse')
     .upsert({ ...validated, organization_id }, { onConflict: 'organization_id' })
   if (error) throw new Error(error.message)
@@ -41,7 +41,7 @@ export async function ajouterEventManuel(data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('events_caisse')
     .insert({ ...validated, organization_id, source: 'manuel' })
   if (error) throw new Error(error.message)

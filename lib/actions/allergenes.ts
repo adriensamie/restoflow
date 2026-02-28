@@ -14,7 +14,7 @@ export async function calculerAllergenesRecette(recetteId: string): Promise<stri
   const organization_id = await getOrgUUID()
 
   // Get all ingredients of the recipe
-  const { data: ingredients } = await (supabase as any)
+  const { data: ingredients } = await supabase
     .from('recette_ingredients')
     .select('produit_id, produits:produit_id(allergenes)')
     .eq('recette_id', recetteId)
@@ -34,7 +34,7 @@ export async function calculerAllergenesRecette(recetteId: string): Promise<stri
   const allergenes = Array.from(allergenesSet).sort()
 
   // Update recipe allergenes
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('recettes')
     .update({ allergenes })
     .eq('id', recetteId)
@@ -50,7 +50,7 @@ export async function updateProduitAllergenes(produitId: string, allergenes: str
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('produits')
     .update({ allergenes: validatedAllergenes })
     .eq('id', produitId)
@@ -59,7 +59,7 @@ export async function updateProduitAllergenes(produitId: string, allergenes: str
   if (error) throw new Error(error.message)
 
   // Recalculate allergenes for all recipes using this product
-  const { data: recipeIngredients } = await (supabase as any)
+  const { data: recipeIngredients } = await supabase
     .from('recette_ingredients')
     .select('recette_id')
     .eq('produit_id', produitId)

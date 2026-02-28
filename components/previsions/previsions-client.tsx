@@ -22,7 +22,7 @@ interface Prevision {
   couverts_midi: number | null; couverts_soir: number | null; ca_prevu: number | null
   meteo_condition: string | null; meteo_temperature: number | null
   est_ferie: boolean; est_vacances: boolean; evenement_local: string | null
-  confiance: string; produits_prioritaires: any[] | null
+  confiance: string; produits_prioritaires: unknown
   couverts_reel_midi: number | null; couverts_reel_soir: number | null; ca_reel: number | null
 }
 

@@ -13,7 +13,7 @@ const ZONES = [
 ]
 
 interface Produit {
-  id: string; nom: string; categorie: string; unite: string; stock_actuel: number
+  id: string; nom: string; categorie: string; unite: string; prix_unitaire: number | null
 }
 interface Vin {
   id: string; nom: string; appellation: string | null; categorie: string; stock_bouteilles: number
@@ -73,7 +73,7 @@ export function InventaireClient({ produits, vins, sessions }: {
             id: p.id, type: 'produit',
             nom: p.nom, sous_titre: p.categorie,
             unite: p.unite || 'unité',
-            stock_theorique: p.stock_actuel || 0,
+            stock_theorique: 0,
             quantite_comptee: '', saved: false,
           })
         })

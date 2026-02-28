@@ -34,7 +34,7 @@ export async function initTemplatesDefaut() {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any).rpc('init_haccp_templates', { org_id: organization_id })
+  const { error } = await supabase.rpc('init_haccp_templates', { org_id: organization_id })
   if (error) throw new Error(error.message)
   revalidatePath('/hygiene')
 }
@@ -55,7 +55,7 @@ export async function creerReleve(data: {
   await requireRole(['patron', 'manager', 'employe'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { data: result, error } = await (supabase as any)
+  const { data: result, error } = await supabase
     .from('haccp_releves')
     .insert({ ...validated, organization_id })
     .select().single()
@@ -91,7 +91,7 @@ export async function creerTemplate(data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { data: result, error } = await (supabase as any)
+  const { data: result, error } = await supabase
     .from('haccp_templates')
     .insert({ ...validated, organization_id })
     .select().single()
@@ -104,7 +104,7 @@ export async function supprimerTemplate(id: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('haccp_templates').update({ actif: false }).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/hygiene')

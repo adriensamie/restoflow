@@ -7,19 +7,19 @@ export default async function RecettesPage() {
   const { supabase, orgId } = await getPageContext()
 
   const [{ data: recettes }, { data: produits }, { data: vins }] = await Promise.all([
-    (supabase as any)
+    supabase
       .from('recettes')
       .select('*, recette_ingredients!recette_ingredients_recette_id_fkey(id, quantite, unite, cout_unitaire, produits(nom), vins(nom))')
       .eq('actif', true)
       .eq('organization_id', orgId)
       .order('type').order('nom'),
-    (supabase as any)
+    supabase
       .from('produits')
       .select('id, nom, categorie, unite, prix_unitaire')
       .eq('actif', true)
       .eq('organization_id', orgId)
       .order('nom'),
-    (supabase as any)
+    supabase
       .from('vins')
       .select('id, nom, appellation, prix_achat_ht')
       .eq('actif', true)

@@ -22,7 +22,7 @@ export async function creerFournisseur(data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { data: result, error } = await (supabase as any)
+  const { data: result, error } = await supabase
     .from('fournisseurs').insert({ ...validated, organization_id }).select().single()
   if (error) throw new Error(error.message)
   revalidatePath('/fournisseurs')
@@ -42,7 +42,7 @@ export async function modifierFournisseur(id: string, data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('fournisseurs').update(validated).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/fournisseurs')
@@ -61,7 +61,7 @@ export async function lierProduitFournisseur(data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('produit_fournisseur').upsert({ ...validated, organization_id }, { onConflict: 'produit_id,fournisseur_id' })
   if (error) throw new Error(error.message)
   revalidatePath('/fournisseurs')
@@ -86,7 +86,7 @@ export async function creerCommande(data: {
 
   const totalHt = validated.lignes.reduce((acc, l) => acc + l.quantite_commandee * (l.prix_unitaire ?? 0), 0)
 
-  const { data: commande, error } = await (supabase as any)
+  const { data: commande, error } = await supabase
     .from('commandes')
     .insert({
       fournisseur_id: validated.fournisseur_id,
@@ -108,7 +108,7 @@ export async function creerCommande(data: {
     prix_unitaire: l.prix_unitaire,
   }))
 
-  const { error: lignesError } = await (supabase as any)
+  const { error: lignesError } = await supabase
     .from('commande_lignes').insert(lignes)
   if (lignesError) throw new Error(lignesError.message)
 
@@ -120,7 +120,7 @@ export async function envoyerCommande(id: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('commandes').update({ statut: 'envoyee' }).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/commandes')
@@ -138,13 +138,13 @@ export async function receptionnerLivraison(
   const organization_id = await getOrgUUID()
 
   // 0. Vérifier que la commande appartient bien à cette organisation
-  const { data: commande, error: cmdCheckError } = await (supabase as any)
+  const { data: commande, error: cmdCheckError } = await supabase
     .from('commandes').select('id').eq('id', validated.commandeId).eq('organization_id', organization_id).single()
   if (cmdCheckError || !commande) throw new Error('Commande introuvable')
 
   // 1. Mettre à jour chaque ligne (scoped via commande_id)
   for (const ligne of validated.lignes) {
-    const { error: ligneError } = await (supabase as any)
+    const { error: ligneError } = await supabase
       .from('commande_lignes')
       .update({ quantite_recue: ligne.quantite_recue, note_ecart: ligne.note_ecart })
       .eq('id', ligne.ligne_id)
@@ -153,7 +153,7 @@ export async function receptionnerLivraison(
 
     // 2. Créer un mouvement stock "entree" pour chaque produit reçu
     if (ligne.quantite_recue > 0) {
-      const { error: mvtError } = await (supabase as any).from('mouvements_stock').insert({
+      const { error: mvtError } = await supabase.from('mouvements_stock').insert({
         produit_id: ligne.produit_id,
         organization_id,
         type: 'entree',
@@ -170,7 +170,7 @@ export async function receptionnerLivraison(
   const toutRecu = validated.lignes.every(l => l.quantite_recue >= l.quantite_commandee)
   const statut = toutRecu ? 'recue' : 'recue_partielle'
 
-  const { error: cmdError } = await (supabase as any)
+  const { error: cmdError } = await supabase
     .from('commandes')
     .update({ statut, date_livraison_reelle: new Date().toISOString().slice(0, 10) })
     .eq('id', validated.commandeId)
@@ -207,7 +207,7 @@ export async function receptionnerLivraison(
     if (ligne.prix_unitaire != null && ligne.prix_unitaire > 0) {
       try {
         // Get current price for comparison
-        const { data: produit } = await (supabase as any)
+        const { data: produit } = await supabase
           .from('produits')
           .select('prix_unitaire')
           .eq('id', ligne.produit_id)
@@ -220,7 +220,7 @@ export async function receptionnerLivraison(
           : null
 
         // Insert price history
-        await (supabase as any).from('prix_produit_historique').insert({
+        await supabase.from('prix_produit_historique').insert({
           organization_id,
           produit_id: ligne.produit_id,
           prix: ligne.prix_unitaire,
@@ -232,7 +232,7 @@ export async function receptionnerLivraison(
         })
 
         // Auto-update product price
-        const { error: updErr } = await (supabase as any)
+        const { error: updErr } = await supabase
           .from('produits')
           .update({ prix_unitaire: ligne.prix_unitaire })
           .eq('id', ligne.produit_id)
@@ -259,7 +259,7 @@ export async function supprimerFournisseur(id: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('fournisseurs')
     .update({ actif: false })
     .eq('id', id)

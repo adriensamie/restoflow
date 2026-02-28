@@ -17,7 +17,7 @@ export async function calculerScoreFournisseur(fournisseurId: string): Promise<{
   const organization_id = await getOrgUUID()
 
   // Count total deliveries
-  const { count: nbLivraisons } = await (supabase as any)
+  const { count: nbLivraisons } = await supabase
     .from('commandes')
     .select('id', { count: 'exact', head: true })
     .eq('fournisseur_id', fournisseurId)
@@ -25,7 +25,7 @@ export async function calculerScoreFournisseur(fournisseurId: string): Promise<{
     .in('statut', ['recue', 'recue_partielle'])
 
   // Count deliveries with ecarts
-  const { count: nbEcarts } = await (supabase as any)
+  const { count: nbEcarts } = await supabase
     .from('commandes')
     .select('id', { count: 'exact', head: true })
     .eq('fournisseur_id', fournisseurId)
@@ -33,7 +33,7 @@ export async function calculerScoreFournisseur(fournisseurId: string): Promise<{
     .eq('statut', 'recue_partielle')
 
   // Count returns
-  const { count: nbRetours } = await (supabase as any)
+  const { count: nbRetours } = await supabase
     .from('retours_fournisseur')
     .select('id', { count: 'exact', head: true })
     .eq('fournisseur_id', fournisseurId)
@@ -51,7 +51,7 @@ export async function calculerScoreFournisseur(fournisseurId: string): Promise<{
   score = Math.max(0, Math.min(10, Math.round(score * 10) / 10))
 
   // Update in fournisseurs table
-  const { error: updError } = await (supabase as any)
+  const { error: updError } = await supabase
     .from('fournisseurs')
     .update({
       score_fiabilite: score,
@@ -76,7 +76,7 @@ export async function getScoresFournisseurs() {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('fournisseurs')
     .select('id, nom, score_fiabilite, nb_livraisons, nb_ecarts')
     .eq('organization_id', organization_id)

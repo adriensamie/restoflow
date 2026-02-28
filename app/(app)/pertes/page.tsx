@@ -7,7 +7,7 @@ export default async function PertesPage() {
   await requireRouteAccess('/pertes')
   const { supabase, orgId } = await getPageContext()
 
-  const { data: pertes } = await (supabase as any)
+  const { data: pertes } = await supabase
     .from('mouvements_stock')
     .select('*, produits(nom, unite, categorie)')
     .eq('organization_id', orgId)
@@ -20,7 +20,7 @@ export default async function PertesPage() {
   debutMois.setDate(1)
   debutMois.setHours(0, 0, 0, 0)
 
-  const { data: pertesMois } = await (supabase as any)
+  const { data: pertesMois } = await supabase
     .from('mouvements_stock')
     .select('quantite, prix_unitaire')
     .eq('organization_id', orgId)

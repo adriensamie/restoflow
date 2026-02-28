@@ -20,7 +20,7 @@ export async function creerRetour(data: {
 
   const totalHt = validated.lignes.reduce((acc, l) => acc + l.quantite_retournee * (l.prix_unitaire ?? 0), 0)
 
-  const { data: retour, error } = await (supabase as any)
+  const { data: retour, error } = await supabase
     .from('retours_fournisseur')
     .insert({
       organization_id,
@@ -42,13 +42,13 @@ export async function creerRetour(data: {
     motif: l.motif,
   }))
 
-  const { error: lignesError } = await (supabase as any)
+  const { error: lignesError } = await supabase
     .from('lignes_retour').insert(lignes)
   if (lignesError) throw new Error(lignesError.message)
 
   // Create stock exit movements for returned items
   for (const l of validated.lignes) {
-    const { error: mvtError } = await (supabase as any).from('mouvements_stock').insert({
+    const { error: mvtError } = await supabase.from('mouvements_stock').insert({
       produit_id: l.produit_id,
       organization_id,
       type: 'sortie',
@@ -68,7 +68,7 @@ export async function getRetours() {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('retours_fournisseur')
     .select('*, fournisseurs(nom, contact_email), lignes_retour(*, produits:produit_id(nom, unite))')
     .eq('organization_id', organization_id)
@@ -82,7 +82,7 @@ export async function getRetourDetail(retourId: string) {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('retours_fournisseur')
     .select('*, fournisseurs(nom, contact_email, adresse), lignes_retour(*, produits:produit_id(nom, unite))')
     .eq('id', retourId)
@@ -99,7 +99,7 @@ export async function majStatutRetour(retourId: string, statut: string) {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('retours_fournisseur')
     .update({ statut: validated.statut })
     .eq('id', validated.retour_id)
@@ -114,7 +114,7 @@ export async function envoyerRetour(retourId: string) {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('retours_fournisseur')
     .update({ statut: 'envoye', envoye_par_email: true })
     .eq('id', retourId)

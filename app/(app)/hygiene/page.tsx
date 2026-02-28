@@ -11,13 +11,13 @@ export default async function HygienePage() {
   debut7j.setDate(aujourd.getDate() - 7)
 
   const [{ data: templates }, { data: releves }] = await Promise.all([
-    (supabase as any)
+    supabase
       .from('haccp_templates')
       .select('*')
       .eq('organization_id', orgId)
       .eq('actif', true)
       .order('nom'),
-    (supabase as any)
+    supabase
       .from('haccp_releves')
       .select('*')
       .eq('organization_id', orgId)

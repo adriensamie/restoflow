@@ -6,7 +6,7 @@ export default async function AssistantPage() {
   await requireRouteAccess('/assistant')
   const { supabase, orgId } = await getPageContext()
 
-  const { data: org } = await (supabase as any)
+  const { data: org } = await supabase
     .from('organizations').select('nom').eq('id', orgId).single()
 
   // Contexte enrichi pour l'IA
@@ -23,13 +23,13 @@ export default async function AssistantPage() {
     { data: previsions },
     { data: nonConformes },
   ] = await Promise.all([
-    (supabase as any).from('stock_actuel').select('nom, quantite_actuelle, seuil_alerte, unite, categorie').eq('organization_id', orgId).order('quantite_actuelle'),
-    (supabase as any).from('mouvements_stock').select('quantite, prix_unitaire, motif, created_at').eq('organization_id', orgId).eq('type', 'perte').gte('created_at', debut30j),
-    (supabase as any).from('snapshots_food_cost').select('*').eq('organization_id', orgId).order('mois', { ascending: false }).limit(3),
-    (supabase as any).from('recettes').select('nom, type, food_cost_pct, marge_pct, cout_matiere, prix_vente_ttc').eq('actif', true).eq('organization_id', orgId).order('food_cost_pct', { ascending: false }).limit(10),
-    (supabase as any).from('employes').select('prenom, nom, poste, heures_contrat, taux_horaire').eq('actif', true).eq('organization_id', orgId),
-    (supabase as any).from('previsions').select('date_prevision, couverts_midi, couverts_soir, ca_prevu, ca_reel').eq('organization_id', orgId).gte('date_prevision', debutMois).order('date_prevision', { ascending: false }).limit(7),
-    (supabase as any).from('haccp_releves').select('nom_controle, resultat, action_corrective, created_at').eq('organization_id', orgId).eq('resultat', 'non_conforme').gte('created_at', debut30j).limit(5),
+    supabase.from('stock_actuel').select('nom, quantite_actuelle, seuil_alerte, unite, categorie').eq('organization_id', orgId).order('quantite_actuelle'),
+    supabase.from('mouvements_stock').select('quantite, prix_unitaire, motif, created_at').eq('organization_id', orgId).eq('type', 'perte').gte('created_at', debut30j),
+    supabase.from('snapshots_food_cost').select('*').eq('organization_id', orgId).order('mois', { ascending: false }).limit(3),
+    supabase.from('recettes').select('nom, type, food_cost_pct, marge_pct, cout_matiere, prix_vente_ttc').eq('actif', true).eq('organization_id', orgId).order('food_cost_pct', { ascending: false }).limit(10),
+    supabase.from('employes').select('prenom, nom, poste, heures_contrat, taux_horaire').eq('actif', true).eq('organization_id', orgId),
+    supabase.from('previsions').select('date_prevision, couverts_midi, couverts_soir, ca_prevu, ca_reel').eq('organization_id', orgId).gte('date_prevision', debutMois).order('date_prevision', { ascending: false }).limit(7),
+    supabase.from('haccp_releves').select('nom_controle, resultat, action_corrective, created_at').eq('organization_id', orgId).eq('resultat', 'non_conforme').gte('created_at', debut30j).limit(5),
   ])
 
   const contexte = {

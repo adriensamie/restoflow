@@ -14,7 +14,7 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
     const organization_id = await getOrgUUID()
     const staff = await getCurrentStaff()
 
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('push_subscriptions')
       .upsert({
         organization_id,

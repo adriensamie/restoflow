@@ -10,14 +10,14 @@ export default async function AntifraudPage() {
   debut.setMonth(debut.getMonth() - 1)
 
   const [{ data: events }, { data: config }] = await Promise.all([
-    (supabase as any)
+    supabase
       .from('events_caisse')
       .select('*')
       .eq('organization_id', orgId)
       .gte('created_at', debut.toISOString())
       .order('created_at', { ascending: false })
       .limit(500),
-    (supabase as any)
+    supabase
       .from('config_caisse')
       .select('*')
       .eq('organization_id', orgId)

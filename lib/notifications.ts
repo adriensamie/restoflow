@@ -32,7 +32,7 @@ export async function createNotification(params: {
 }) {
   const supabase = await createServerSupabaseClient()
 
-  const { error } = await (supabase as any).from('notifications').insert({
+  const { error } = await supabase.from('notifications').insert({
     organization_id: params.organizationId,
     staff_id: params.staffId ?? null,
     type: params.type,
@@ -68,7 +68,7 @@ export async function dispatchNotification(params: {
   let canaux = ['in_app']
 
   if (params.staffId) {
-    const { data: prefs } = await (supabase as any)
+    const { data: prefs } = await supabase
       .from('notification_preferences')
       .select('in_app, web_push, email')
       .eq('organization_id', params.organizationId)
@@ -95,7 +95,7 @@ async function sendPushNotifications(
   try {
     const supabase = await createServerSupabaseClient()
 
-    let query = (supabase as any)
+    let query = supabase
       .from('push_subscriptions')
       .select('endpoint, p256dh, auth_key')
       .eq('organization_id', organizationId)

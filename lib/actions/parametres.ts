@@ -20,7 +20,7 @@ export async function sauvegarderParametres(data: {
   const staff = await requireRole(['patron'])
   const supabase = await createServerSupabaseClient()
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('organizations')
     .update({
       nom: validated.nom,

@@ -8,13 +8,13 @@ export default async function StocksPage() {
   const { supabase, orgId } = await getPageContext()
 
   const [{ data: stocks }, { data: alertes }] = await Promise.all([
-    (supabase as any)
+    supabase
       .from('stock_actuel')
       .select('*')
       .eq('organization_id', orgId)
       .order('categorie')
       .order('nom'),
-    (supabase as any)
+    supabase
       .from('stock_actuel')
       .select('*')
       .eq('organization_id', orgId)

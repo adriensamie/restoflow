@@ -8,7 +8,7 @@ export default async function CommandeDetailPage({ params }: { params: Promise<{
   const { id } = await params
   const { supabase, orgId } = await getPageContext()
 
-  const { data: commande } = await (supabase as any)
+  const { data: commande } = await supabase
     .from('commandes')
     .select('*, fournisseur_id, fournisseurs(nom, contact_telephone, contact_email)')
     .eq('id', id)
@@ -17,7 +17,7 @@ export default async function CommandeDetailPage({ params }: { params: Promise<{
 
   if (!commande) notFound()
 
-  const { data: lignes } = await (supabase as any)
+  const { data: lignes } = await supabase
     .from('commande_lignes')
     .select('*, produits(nom, unite, categorie)')
     .eq('commande_id', id)

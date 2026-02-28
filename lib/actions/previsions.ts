@@ -25,7 +25,7 @@ export async function sauvegarderPrevision(data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('previsions')
     .upsert({ ...validated, organization_id }, { onConflict: 'organization_id,date_prevision' })
   if (error) throw new Error(error.message)
@@ -43,7 +43,7 @@ export async function sauvegarderReel(data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('previsions')
     .update(validated)
     .eq('date_prevision', validated.date_prevision)

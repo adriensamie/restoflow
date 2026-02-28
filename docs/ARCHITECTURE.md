@@ -233,7 +233,7 @@ export async function creerProduit(data: CreerProduitInput) {
 
   // 4. Query — Supabase avec scope org
   const supabase = await createServerSupabaseClient()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('produits')
     .insert({ ...parsed, organization_id: orgId })
 

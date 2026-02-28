@@ -6,11 +6,11 @@ import { requireRole, DEFAULT_ROLE_ROUTES, DEFAULT_ROLE_ACTIONS } from '@/lib/rb
 import { revalidatePath } from 'next/cache'
 import { updateRolePermissionsSchema } from '@/lib/validations/rbac'
 
-export async function getPermissionsForRole(role: string) {
+export async function getPermissionsForRole(role: 'manager' | 'employe' | 'livreur') {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('role_permissions')
     .select('allowed_routes, allowed_actions')
     .eq('organization_id', organization_id)
@@ -27,7 +27,7 @@ export async function getAllRolePermissions() {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('role_permissions')
     .select('role, allowed_routes, allowed_actions')
     .eq('organization_id', organization_id)
@@ -53,7 +53,7 @@ export async function updateRolePermissions(data: {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('role_permissions')
     .upsert({
       organization_id,

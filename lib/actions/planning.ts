@@ -20,7 +20,7 @@ export async function creerEmploye(data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { data: result, error } = await (supabase as any)
+  const { data: result, error } = await supabase
     .from('employes').insert({ ...validated, organization_id }).select().single()
   if (error) throw new Error(error.message)
   revalidatePath('/planning')
@@ -42,7 +42,7 @@ export async function modifierEmploye(id: string, data: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('employes').update(validated).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/planning')
@@ -53,7 +53,7 @@ export async function archiverEmploye(id: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('employes').update({ actif: false }).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/planning')
@@ -75,7 +75,7 @@ export async function creerCreneau(data: {
   const organization_id = await getOrgUUID()
 
   // Calculer le coût prévu
-  const { data: emp, error: empError } = await (supabase as any)
+  const { data: emp, error: empError } = await supabase
     .from('employes').select('taux_horaire').eq('id', validated.employe_id).eq('organization_id', organization_id).single()
   if (empError) throw new Error(empError.message)
 
@@ -86,7 +86,7 @@ export async function creerCreneau(data: {
   const heures = minutes / 60
   const cout = emp?.taux_horaire ? Math.round(heures * emp.taux_horaire * 100) / 100 : null
 
-  const { data: result, error } = await (supabase as any)
+  const { data: result, error } = await supabase
     .from('creneaux_planning')
     .insert({ ...validated, organization_id, cout_prevu: cout })
     .select().single()
@@ -100,7 +100,7 @@ export async function modifierStatutCreneau(id: string, statut: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('creneaux_planning').update({ statut: validated.statut }).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/planning')
@@ -110,7 +110,7 @@ export async function supprimerCreneau(id: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('creneaux_planning').delete().eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/planning')
@@ -122,7 +122,7 @@ export async function dupliquerSemaine(dateDebut: string, dateFin: string, offse
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { data: creneaux, error: selError } = await (supabase as any)
+  const { data: creneaux, error: selError } = await supabase
     .from('creneaux_planning')
     .select('employe_id, date, heure_debut, heure_fin, poste, service, note, cout_prevu')
     .eq('organization_id', organization_id)
@@ -138,7 +138,7 @@ export async function dupliquerSemaine(dateDebut: string, dateFin: string, offse
     return { ...c, organization_id, date: d.toISOString().slice(0, 10), statut: 'planifie' }
   })
 
-  const { error: insError } = await (supabase as any).from('creneaux_planning').insert(nouveaux)
+  const { error: insError } = await supabase.from('creneaux_planning').insert(nouveaux)
   if (insError) throw new Error(insError.message)
   revalidatePath('/planning')
   return nouveaux.length

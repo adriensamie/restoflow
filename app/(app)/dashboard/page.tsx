@@ -9,7 +9,7 @@ type OrgData = {
 export default async function DashboardPage() {
   const { supabase, orgId } = await getPageContext()
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('organizations')
     .select('nom, plan, trial_ends_at')
     .eq('id', orgId)

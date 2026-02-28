@@ -6,7 +6,7 @@ export default async function IntegrationsPage() {
   await requireRouteAccess('/integrations')
   const { supabase, orgId } = await getPageContext()
 
-  const { data: configCaisse } = await (supabase as any)
+  const { data: configCaisse } = await supabase
     .from('config_caisse').select('*').eq('organization_id', orgId).maybeSingle()
 
   return (

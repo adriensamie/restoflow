@@ -22,7 +22,7 @@ interface Recette {
   id: string; nom: string; type: string; description: string | null
   prix_vente_ttc: number | null; cout_matiere: number | null
   food_cost_pct: number | null; marge_pct: number | null; coefficient: number | null
-  pourcentage_ficelles: number; nb_portions: number; allergenes: string[]
+  pourcentage_ficelles: number | null; nb_portions: number | null; allergenes: string[] | null
   recette_ingredients: any[]
 }
 
@@ -193,10 +193,10 @@ export function RecettesClient({ recettes, produits, vins }: {
                   {r.prix_vente_ttc ? `${r.prix_vente_ttc.toFixed(2)} €` : 'Prix non défini'}
                 </span>
                 <div className="flex items-center gap-1">
-                  {r.allergenes?.length > 0 && (
+                  {(r.allergenes?.length ?? 0) > 0 && (
                     <span className="text-xs px-2 py-0.5 rounded-full"
                       style={{ background: '#1a1505', color: '#fbbf24' }}>
-                      {r.allergenes.length} allergène{r.allergenes.length > 1 ? 's' : ''}
+                      {r.allergenes!.length} allergène{r.allergenes!.length > 1 ? 's' : ''}
                     </span>
                   )}
                   <span className="text-xs" style={{ color: '#2d4a7a' }}>

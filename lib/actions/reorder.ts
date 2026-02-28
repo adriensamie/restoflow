@@ -20,7 +20,7 @@ export async function getSuggestionsReappro(): Promise<SuggestionReappro[]> {
   const organization_id = await getOrgUUID()
 
   // Get products below alert threshold
-  const { data: stocks } = await (supabase as any)
+  const { data: stocks } = await supabase
     .from('stock_actuel')
     .select('produit_id, nom, unite, quantite_actuelle, seuil_alerte')
     .eq('organization_id', organization_id)
@@ -32,7 +32,7 @@ export async function getSuggestionsReappro(): Promise<SuggestionReappro[]> {
 
   for (const stock of stocks) {
     // Find main supplier
-    const { data: pf } = await (supabase as any)
+    const { data: pf } = await supabase
       .from('produit_fournisseur')
       .select('fournisseur_id, prix_negocie, qte_min, fournisseurs:fournisseur_id(nom)')
       .eq('produit_id', stock.produit_id)

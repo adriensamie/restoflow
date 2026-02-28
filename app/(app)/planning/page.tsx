@@ -17,13 +17,13 @@ export default async function PlanningPage() {
   const dateFin = dimanche.toISOString().slice(0, 10)
 
   const [{ data: employes }, { data: creneaux }] = await Promise.all([
-    (supabase as any)
+    supabase
       .from('employes')
       .select('*')
       .eq('actif', true)
       .eq('organization_id', orgId)
       .order('poste').order('prenom'),
-    (supabase as any)
+    supabase
       .from('creneaux_planning')
       .select('*, employes(prenom, nom, couleur, poste)')
       .eq('organization_id', orgId)

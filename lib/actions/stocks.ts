@@ -21,7 +21,7 @@ export async function creerProduit(formData: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('produits')
     .insert({ ...validated, organization_id })
     .select()
@@ -43,7 +43,7 @@ export async function modifierProduit(id: string, formData: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('produits')
     .update(validated)
     .eq('id', id)
@@ -56,7 +56,7 @@ export async function archiverProduit(id: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('produits')
     .update({ actif: false })
     .eq('id', id)
@@ -79,14 +79,14 @@ export async function ajouterMouvement(formData: {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('mouvements_stock')
     .insert({ ...validated, organization_id })
   if (error) throw new Error(error.message)
 
   // Check stock critique after movement
   try {
-    const { data: stock } = await (supabase as any)
+    const { data: stock } = await supabase
       .from('stock_actuel')
       .select('nom, quantite_actuelle, seuil_alerte, unite')
       .eq('produit_id', validated.produit_id)
@@ -116,13 +116,13 @@ export async function enregistrerInventaire(
   const organization_id = await getOrgUUID()
   const inserts = validatedLignes.map(l => ({
     produit_id: l.produit_id,
-    type: 'inventaire',
+    type: 'inventaire' as const,
     quantite: l.quantite_reelle,
     prix_unitaire: l.prix_unitaire,
     motif: 'Inventaire manuel',
     organization_id,
   }))
-  const { error } = await (supabase as any).from('mouvements_stock').insert(inserts)
+  const { error } = await supabase.from('mouvements_stock').insert(inserts)
   if (error) throw new Error(error.message)
   revalidatePath('/stocks')
 }
@@ -130,7 +130,7 @@ export async function supprimerProduit(id: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('produits')
     .update({ actif: false })
     .eq('id', id)

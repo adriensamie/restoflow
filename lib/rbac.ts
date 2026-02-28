@@ -52,7 +52,7 @@ export const getCurrentStaff = cache(async (): Promise<CurrentStaff | null> => {
     if (!org) return null
 
     // Find staff by clerk_user_id within this org
-    const { data: staff } = await (supabase as any)
+    const { data: staff } = await supabase
       .from('staff')
       .select('id, role, nom, prenom')
       .eq('organization_id', org.id)
@@ -86,7 +86,7 @@ export async function canAccessRoute(route: string): Promise<boolean> {
   if (staff.role === 'patron') return true
 
   const supabase = await createServerSupabaseClient()
-  const { data: perms } = await (supabase as any)
+  const { data: perms } = await supabase
     .from('role_permissions')
     .select('allowed_routes')
     .eq('organization_id', staff.orgId)
@@ -99,11 +99,11 @@ export async function canAccessRoute(route: string): Promise<boolean> {
   return allowedRoutes.some(r => route === r || route.startsWith(r + '/'))
 }
 
-export async function getAllowedRoutes(role: string, orgId: string): Promise<string[]> {
+export async function getAllowedRoutes(role: 'patron' | 'manager' | 'employe' | 'livreur', orgId: string): Promise<string[]> {
   if (role === 'patron') return ['*']
 
   const supabase = await createServerSupabaseClient()
-  const { data: perms } = await (supabase as any)
+  const { data: perms } = await supabase
     .from('role_permissions')
     .select('allowed_routes')
     .eq('organization_id', orgId)

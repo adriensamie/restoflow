@@ -31,7 +31,7 @@ export async function creerLot(data: {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { error } = await (supabase as any).from('lots_produit').insert({
+  const { error } = await supabase.from('lots_produit').insert({
     ...validated,
     organization_id,
     statut: 'actif',
@@ -44,7 +44,7 @@ export async function getLots(produitId?: string) {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  let query = (supabase as any)
+  let query = supabase
     .from('lots_produit')
     .select('*, produits:produit_id(nom, unite)')
     .eq('organization_id', organization_id)
@@ -64,7 +64,7 @@ export async function getLotsProchesExpiration(joursAvant = 7) {
 
   const dateLimite = new Date(Date.now() + joursAvant * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('lots_produit')
     .select('*, produits:produit_id(nom, unite)')
     .eq('organization_id', organization_id)
@@ -82,7 +82,7 @@ export async function majStatutLot(lotId: string, statut: 'consomme' | 'expire' 
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('lots_produit')
     .update({ statut })
     .eq('id', lotId)

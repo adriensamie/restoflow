@@ -37,14 +37,14 @@ export async function creerFichePaie(data: {
   const organization_id = await getOrgUUID()
 
   // Lire le taux de charges salariales depuis l'org
-  const { data: org } = await (supabase as any)
+  const { data: org } = await supabase
     .from('organizations').select('taux_charges_salariales').eq('id', organization_id).single()
   const tauxCharges = (org?.taux_charges_salariales ?? 22) / 100
 
   const cotisations = Math.round(validated.salaire_brut * tauxCharges * 100) / 100
   const salaire_net = Math.round((validated.salaire_brut - cotisations) * 100) / 100
 
-  const { data: result, error } = await (supabase as any)
+  const { data: result, error } = await supabase
     .from('fiches_paie')
     .upsert({
       ...validated,
@@ -64,7 +64,7 @@ export async function validerFichePaie(id: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any).from('fiches_paie')
+  const { error } = await supabase.from('fiches_paie')
     .update({ statut: 'valide', validated_at: new Date().toISOString() })
     .eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
@@ -76,7 +76,7 @@ export async function marquerPaye(id: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any).from('fiches_paie')
+  const { error } = await supabase.from('fiches_paie')
     .update({ statut: 'paye' }).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
   revalidatePath('/fiches-paie')
@@ -93,7 +93,7 @@ export async function genererFichesDepuisPlanning(mois: string) {
   const fin = new Date(debut.getFullYear(), debut.getMonth() + 1, 0)
 
   // Récupérer tous les créneaux du mois avec calcul des heures
-  const { data: creneaux, error: crError } = await (supabase as any)
+  const { data: creneaux, error: crError } = await supabase
     .from('creneaux_planning')
     .select('employe_id, heure_debut, heure_fin, cout_prevu')
     .eq('organization_id', organization_id)
@@ -117,7 +117,7 @@ export async function genererFichesDepuisPlanning(mois: string) {
   })
 
   // Récupérer les employés
-  const { data: employes, error: empError } = await (supabase as any)
+  const { data: employes, error: empError } = await supabase
     .from('employes')
     .select('id, taux_horaire, heures_contrat')
     .eq('organization_id', organization_id)
@@ -125,7 +125,7 @@ export async function genererFichesDepuisPlanning(mois: string) {
   if (empError) throw new Error(empError.message)
 
   // Lire le taux de charges salariales depuis l'org
-  const { data: org } = await (supabase as any)
+  const { data: org } = await supabase
     .from('organizations').select('taux_charges_salariales').eq('id', organization_id).single()
   const tauxCharges = (org?.taux_charges_salariales ?? 22) / 100
 
@@ -138,7 +138,7 @@ export async function genererFichesDepuisPlanning(mois: string) {
     const tauxH = emp.taux_horaire || 12
     const brut = Math.round(stats.heures * tauxH * 100) / 100
 
-    const { error } = await (supabase as any).from('fiches_paie').upsert({
+    const { error } = await supabase.from('fiches_paie').upsert({
       organization_id,
       employe_id: emp.id,
       mois,

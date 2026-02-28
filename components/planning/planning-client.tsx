@@ -23,14 +23,14 @@ const COULEURS_EMPLOYE = [
 
 interface Employe {
   id: string; prenom: string; nom: string; poste: string
-  couleur: string; taux_horaire: number | null; heures_contrat: number
+  couleur: string | null; taux_horaire: number | null; heures_contrat: number
 }
 interface Creneau {
   id: string; employe_id: string; date: string
   heure_debut: string; heure_fin: string; poste: string | null
   service: string | null; statut: string; note: string | null
   cout_prevu: number | null
-  employes: { prenom: string; nom: string; couleur: string; poste: string } | null
+  employes: { prenom: string; nom: string; couleur: string | null; poste: string } | null
 }
 
 export function PlanningClient({ employes, creneaux, dateDebut, dateFin }: {
@@ -292,7 +292,7 @@ export function PlanningClient({ employes, creneaux, dateDebut, dateFin }: {
               return (
                 <div key={emp.id} className="flex items-center gap-4 px-4 py-2.5 rounded-xl"
                   style={{ background: '#0d1526', border: '1px solid #1e2d4a' }}>
-                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: emp.couleur }} />
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: emp.couleur ?? '#94a3b8' }} />
                   <div className="w-32 flex-shrink-0">
                     <p className="text-sm font-medium" style={{ color: '#e2e8f0' }}>{emp.prenom} {emp.nom}</p>
                     <p className="text-xs" style={{ color: '#4a6fa5' }}>{POSTES[emp.poste]?.label}</p>
@@ -300,10 +300,10 @@ export function PlanningClient({ employes, creneaux, dateDebut, dateFin }: {
                   <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#1e2d4a' }}>
                     <div className="h-full rounded-full" style={{
                       width: `${Math.min(100, (heures / (emp.heures_contrat || 35)) * 100)}%`,
-                      background: emp.couleur
+                      background: emp.couleur ?? '#94a3b8'
                     }} />
                   </div>
-                  <p className="text-sm font-bold w-16 text-right" style={{ color: emp.couleur }}>
+                  <p className="text-sm font-bold w-16 text-right" style={{ color: emp.couleur ?? '#94a3b8' }}>
                     {Math.round(heures * 10) / 10}h
                   </p>
                   <p className="text-xs w-20 text-right" style={{ color: '#4a6fa5' }}>

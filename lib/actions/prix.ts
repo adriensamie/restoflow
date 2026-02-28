@@ -25,7 +25,7 @@ export async function enregistrerPrix(data: {
   const organization_id = await getOrgUUID()
 
   // Get previous price
-  const { data: produit } = await (supabase as any)
+  const { data: produit } = await supabase
     .from('produits')
     .select('prix_unitaire')
     .eq('id', validated.produit_id)
@@ -37,7 +37,7 @@ export async function enregistrerPrix(data: {
     ? ((validated.prix - prixPrecedent) / prixPrecedent) * 100
     : null
 
-  const { error } = await (supabase as any).from('prix_produit_historique').insert({
+  const { error } = await supabase.from('prix_produit_historique').insert({
     organization_id,
     produit_id: validated.produit_id,
     fournisseur_id: validated.fournisseur_id ?? null,
@@ -56,7 +56,7 @@ export async function getPrixHistorique(produitId: string, limit = 30) {
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('prix_produit_historique')
     .select('*, fournisseurs:fournisseur_id(nom)')
     .eq('organization_id', organization_id)
@@ -74,7 +74,7 @@ export async function getAlertesHausse(seuilPct = 10) {
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('prix_produit_historique')
     .select('*, produits:produit_id(nom, unite, categorie)')
     .eq('organization_id', organization_id)

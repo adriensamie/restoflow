@@ -12,14 +12,14 @@ const STATUT_CONFIG = {
 
 interface FichePaie {
   id: string; employe_id: string; mois: string
-  heures_normales: number; heures_sup: number; heures_absences: number
+  heures_normales: number; heures_sup: number | null; heures_absences: number | null
   salaire_brut: number; salaire_net: number | null; cotisations: number | null
-  primes: number; avantages: number; statut: string
-  employes: { prenom: string; nom: string; poste: string; couleur: string } | null
+  primes: number | null; avantages: number | null; statut: string
+  employes: { prenom: string; nom: string; poste: string; couleur: string | null } | null
 }
 interface Employe {
   id: string; prenom: string; nom: string; poste: string
-  taux_horaire: number | null; heures_contrat: number; couleur: string
+  taux_horaire: number | null; heures_contrat: number; couleur: string | null
 }
 
 export function FichesPaieClient({ fiches: init, employes, moisCourant }: {
@@ -187,8 +187,8 @@ export function FichesPaieClient({ fiches: init, employes, moisCourant }: {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm" style={{ color: '#60a5fa' }}>{f.heures_normales}h</td>
-                  <td className="px-4 py-3 text-sm" style={{ color: f.heures_sup > 0 ? '#fbbf24' : '#2d4a7a' }}>
-                    {f.heures_sup > 0 ? `+${f.heures_sup}h` : '—'}
+                  <td className="px-4 py-3 text-sm" style={{ color: (f.heures_sup ?? 0) > 0 ? '#fbbf24' : '#2d4a7a' }}>
+                    {(f.heures_sup ?? 0) > 0 ? `+${f.heures_sup}h` : '—'}
                   </td>
                   <td className="px-4 py-3 text-sm font-bold" style={{ color: '#f97316' }}>
                     {f.salaire_brut?.toFixed(2)} €
@@ -200,7 +200,7 @@ export function FichesPaieClient({ fiches: init, employes, moisCourant }: {
                     {f.salaire_net?.toFixed(2)} €
                   </td>
                   <td className="px-4 py-3 text-sm" style={{ color: '#4a6fa5' }}>
-                    {f.primes > 0 ? `+${f.primes} €` : '—'}
+                    {(f.primes ?? 0) > 0 ? `+${f.primes} €` : '—'}
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-xs px-2 py-1 rounded-full font-medium"

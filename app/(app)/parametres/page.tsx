@@ -6,7 +6,7 @@ export default async function ParametresPage() {
   await requireRouteAccess('/parametres')
   const { supabase, orgId } = await getPageContext()
 
-  const { data: org } = await (supabase as any)
+  const { data: org } = await supabase
     .from('organizations')
     .select('*')
     .eq('id', orgId)
