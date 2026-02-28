@@ -34,18 +34,33 @@ export async function POST(req: NextRequest) {
       const customerId = session.customer as string
       const subscriptionId = session.subscription as string
       const plan = session.metadata?.plan as Plan | undefined
+      const orgId = session.metadata?.org_id
 
       if (plan) {
-        const { error } = await supabase
+        const updates = {
+          plan,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionId,
+          subscription_status: 'active',
+          trial_ends_at: null,
+        }
+
+        // Try by stripe_customer_id first, fallback to org_id from metadata
+        let { error, count } = await supabase
           .from('organizations')
-          .update({
-            plan,
-            stripe_subscription_id: subscriptionId,
-            subscription_status: 'active',
-            trial_ends_at: null,
-          })
+          .update(updates)
           .eq('stripe_customer_id', customerId)
-        if (error) console.error('Stripe webhook checkout update error:', error)
+
+        if ((error || count === 0) && orgId) {
+          console.warn('[stripe webhook] customer_id match failed, trying org_id:', orgId)
+          const result = await supabase
+            .from('organizations')
+            .update(updates)
+            .eq('id', orgId)
+          if (result.error) console.error('Stripe webhook checkout update error (org_id fallback):', result.error)
+        } else if (error) {
+          console.error('Stripe webhook checkout update error:', error)
+        }
       }
       break
     }

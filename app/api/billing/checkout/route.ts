@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe, PRICE_IDS, type PlanId } from '@/lib/stripe'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { withRateLimit } from '@/lib/api-rate-limit'
 
 export const POST = withRateLimit(async function POST(req: NextRequest) {
@@ -35,10 +36,13 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
       metadata: { clerk_org_id: orgId, org_id: org.id },
     })
     customerId = customer.id
-    await supabase
+    // Use admin client to bypass RLS for this critical update
+    const adminSupabase = createAdminClient() as any
+    const { error: updateErr } = await adminSupabase
       .from('organizations')
       .update({ stripe_customer_id: customerId })
       .eq('id', org.id)
+    if (updateErr) console.error('[checkout] Failed to save stripe_customer_id:', updateErr)
   }
 
   const session = await stripe.checkout.sessions.create({
