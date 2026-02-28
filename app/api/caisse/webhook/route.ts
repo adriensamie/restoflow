@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
+import { withRateLimit } from '@/lib/api-rate-limit'
 
 // Webhook universel — reçoit les événements de toutes les caisses
 // URL : https://restoflow.fr/api/caisse/webhook?org=ORGANIZATION_ID
@@ -90,12 +91,16 @@ function mapPaiement(type: string): string | null {
   return 'autre'
 }
 
-export async function POST(req: NextRequest) {
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export const POST = withRateLimit(async function POST(req: NextRequest) {
   try {
     const supabase = getSupabase()
     const orgId = req.nextUrl.searchParams.get('org')
     const source = req.nextUrl.searchParams.get('source') || 'manuel'
-    if (!orgId) return NextResponse.json({ error: 'org manquant' }, { status: 400 })
+    if (!orgId || !UUID_REGEX.test(orgId)) {
+      return NextResponse.json({ error: 'org manquant ou invalide' }, { status: 400 })
+    }
 
     const { data: config } = await supabase
       .from('config_caisse')
@@ -103,20 +108,25 @@ export async function POST(req: NextRequest) {
       .eq('organization_id', orgId)
       .single()
 
-    if (config?.webhook_secret) {
-      const signature = req.headers.get('x-webhook-signature') || req.headers.get('x-signature')
-      if (signature) {
-        const body = await req.text()
-        const expected = crypto
-          .createHmac('sha256', config.webhook_secret)
-          .update(body).digest('hex')
-        if (signature !== expected && signature !== `sha256=${expected}`) {
-          return NextResponse.json({ error: 'Signature invalide' }, { status: 401 })
-        }
-      }
+    // Require webhook_secret to be configured — refuse unsigned requests
+    if (!config?.webhook_secret) {
+      return NextResponse.json({ error: 'Webhook non configure pour cette organisation' }, { status: 403 })
     }
 
-    const payload = await req.json().catch(() => ({}))
+    const body = await req.text()
+
+    const signature = req.headers.get('x-webhook-signature') || req.headers.get('x-signature')
+    if (!signature) {
+      return NextResponse.json({ error: 'Signature manquante' }, { status: 401 })
+    }
+    const expected = crypto
+      .createHmac('sha256', config.webhook_secret)
+      .update(body).digest('hex')
+    if (signature !== expected && signature !== `sha256=${expected}`) {
+      return NextResponse.json({ error: 'Signature invalide' }, { status: 401 })
+    }
+
+    const payload = (() => { try { return JSON.parse(body) } catch { return {} } })()
     const events = Array.isArray(payload) ? payload : [payload]
 
     const toInsert = events.map(e => ({
@@ -132,12 +142,30 @@ export async function POST(req: NextRequest) {
       .update({ derniere_sync: new Date().toISOString(), statut_connexion: 'connecte' })
       .eq('organization_id', orgId)
 
+    // Check for suspicious cancellations and create notification
+    const cancellations = toInsert.filter((e: any) =>
+      e.event_type === 'annulation_ticket' || e.event_type === 'correction'
+    )
+    if (cancellations.length > 0) {
+      const totalMontant = cancellations.reduce((a: number, e: any) => a + (e.montant || 0), 0)
+      const seuil = config?.seuil_alerte_annulation ?? 50
+      if (totalMontant >= seuil) {
+        try {
+          await supabase.from('notifications').insert({
+            organization_id: orgId,
+            type: 'annulation_suspecte',
+            titre: `Annulation suspecte : ${totalMontant} EUR`,
+            message: `${cancellations.length} annulation(s) pour un total de ${totalMontant} EUR`,
+            lue: false,
+            canal: ['in_app', 'web_push'],
+          })
+        } catch {}
+      }
+    }
+
     return NextResponse.json({ success: true, inserted: toInsert.length })
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+    console.error('Webhook caisse error:', e)
+    return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
-}
-
-export async function GET() {
-  return NextResponse.json({ status: 'RestoFlow Caisse Webhook OK' })
-}
+}, { maxRequests: 60, windowMs: 60 * 1000, prefix: 'webhook-caisse' })

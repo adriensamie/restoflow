@@ -2,6 +2,11 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
+import { getOrgBilling } from '@/lib/billing'
+import { TrialBanner } from '@/components/billing/trial-banner'
+import { ExpiredBanner } from '@/components/billing/expired-banner'
+import { getCurrentStaff } from '@/lib/auth'
+import { getAllowedRoutes } from '@/lib/rbac'
 export const dynamic = 'force-dynamic'
 
 export default async function AppLayout({
@@ -14,11 +19,25 @@ export default async function AppLayout({
   if (!userId) redirect('/sign-in')
   if (!orgId) redirect('/onboarding')
 
+  const billing = await getOrgBilling()
+  const staff = await getCurrentStaff()
+  const role = staff?.role ?? 'patron'
+  const allowedRoutes = staff ? await getAllowedRoutes(role, staff.orgId) : ['*']
+
   return (
     <div className="flex h-screen" style={{ background: '#080d1a' }}>
-      <Sidebar />
+      <Sidebar plan={billing.plan} role={role} allowedRoutes={allowedRoutes} />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Header />
+        {billing.isTrialExpired && (
+          <ExpiredBanner reason="trial_expired" />
+        )}
+        {billing.subscriptionStatus === 'past_due' && (
+          <ExpiredBanner reason="past_due" />
+        )}
+        {billing.plan === 'trial' && !billing.isTrialExpired && billing.daysLeft !== null && (
+          <TrialBanner daysLeft={billing.daysLeft} />
+        )}
+        <Header role={role} staffName={staff ? `${staff.prenom} ${staff.nom}`.trim() : ''} />
         <main className="flex-1 overflow-y-auto p-6">
           {children}
         </main>

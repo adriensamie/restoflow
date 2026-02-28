@@ -1,8 +1,10 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 import { AntifraudClient } from '@/components/antifraud/antifraud-client'
+import { requireRouteAccess } from '@/lib/require-route-access'
 
 export default async function AntifraudPage() {
+  await requireRouteAccess('/antifraud')
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
 

@@ -2,7 +2,22 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
+import { requireRole } from '@/lib/rbac'
 import { revalidatePath } from 'next/cache'
+import { requireAccess } from '@/lib/billing'
+import { z } from 'zod'
+
+const creerFichePaieSchema = z.object({
+  employe_id: z.string().uuid(),
+  mois: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  heures_normales: z.number().min(0).max(1000),
+  heures_sup: z.number().min(0).max(500).optional(),
+  heures_absences: z.number().min(0).max(500).optional(),
+  salaire_brut: z.number().min(0).max(1000000),
+  primes: z.number().min(0).max(100000).optional(),
+  avantages: z.number().min(0).max(100000).optional(),
+  importe_ia: z.boolean().optional(),
+})
 
 export async function creerFichePaie(data: {
   employe_id: string
@@ -15,6 +30,9 @@ export async function creerFichePaie(data: {
   avantages?: number
   importe_ia?: boolean
 }) {
+  const validated = creerFichePaieSchema.parse(data)
+  await requireAccess('fiches_paie')
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
@@ -38,6 +56,7 @@ export async function creerFichePaie(data: {
 }
 
 export async function validerFichePaie(id: string) {
+  await requireAccess('fiches_paie')
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any).from('fiches_paie')
@@ -48,6 +67,7 @@ export async function validerFichePaie(id: string) {
 }
 
 export async function marquerPaye(id: string) {
+  await requireAccess('fiches_paie')
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any).from('fiches_paie')
@@ -57,6 +77,7 @@ export async function marquerPaye(id: string) {
 }
 
 export async function genererFichesDepuisPlanning(mois: string) {
+  await requireAccess('fiches_paie')
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
@@ -80,8 +101,10 @@ export async function genererFichesDepuisPlanning(mois: string) {
     if (!parEmploye[c.employe_id]) parEmploye[c.employe_id] = { heures: 0, cout: 0 }
     const [hd, md] = (c.heure_debut || '0:0').split(':').map(Number)
     const [hf, mf] = (c.heure_fin || '0:0').split(':').map(Number)
-    const h = (hf * 60 + mf - hd * 60 - md) / 60
-    parEmploye[c.employe_id].heures += h > 0 ? h : 0
+    let mins = hf * 60 + mf - (hd * 60 + md)
+    if (mins < 0) mins += 24 * 60
+    const h = mins / 60
+    parEmploye[c.employe_id].heures += h
     parEmploye[c.employe_id].cout += c.cout_prevu || 0
   })
 

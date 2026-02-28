@@ -5,9 +5,9 @@ import { Truck, ChevronDown, ChevronUp, CheckCircle, Package } from 'lucide-reac
 import { receptionnerLivraison } from '@/lib/actions/commandes'
 
 const STATUT_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  envoyee:   { label: 'Envoyée',    color: '#60a5fa', bg: '#0a1f3d' },
-  confirmee: { label: 'Confirmée',  color: '#4ade80', bg: '#0a2d1a' },
-  partielle: { label: 'Partielle',  color: '#fbbf24', bg: '#1a1505' },
+  envoyee:          { label: 'Envoyée',           color: '#60a5fa', bg: '#0a1f3d' },
+  confirmee:        { label: 'Confirmée',         color: '#4ade80', bg: '#0a2d1a' },
+  recue_partielle:  { label: 'Reçue partielle',   color: '#fbbf24', bg: '#1a1505' },
 }
 
 export function LivraisonsClient({ commandes }: { commandes: any[] }) {

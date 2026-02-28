@@ -1,8 +1,10 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 import { IntegrationsClient } from '@/components/integrations/integrations-client'
+import { requireRouteAccess } from '@/lib/require-route-access'
 
 export default async function IntegrationsPage() {
+  await requireRouteAccess('/integrations')
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
 

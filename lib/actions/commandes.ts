@@ -3,7 +3,9 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
-import { creerFournisseurSchema, modifierFournisseurSchema, creerCommandeSchema } from '@/lib/validations/commandes'
+import { creerFournisseurSchema, modifierFournisseurSchema, creerCommandeSchema, receptionnerLivraisonSchema } from '@/lib/validations/commandes'
+import { createNotification } from '@/lib/notifications'
+import { requireRole } from '@/lib/rbac'
 
 // ─── Fournisseurs ────────────────────────────────────────────────────────────
 
@@ -17,6 +19,7 @@ export async function creerFournisseur(data: {
   conditions_paiement?: string
 }) {
   creerFournisseurSchema.parse(data)
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { data: result, error } = await (supabase as any)
@@ -36,6 +39,7 @@ export async function modifierFournisseur(id: string, data: {
   conditions_paiement?: string
 }) {
   modifierFournisseurSchema.parse(data)
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
@@ -53,6 +57,7 @@ export async function lierProduitFournisseur(data: {
   qte_min?: number
   fournisseur_principal?: boolean
 }) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
@@ -71,6 +76,7 @@ export async function creerCommande(data: {
   lignes: { produit_id: string; quantite_commandee: number; prix_unitaire?: number }[]
 }) {
   creerCommandeSchema.parse(data)
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
@@ -110,6 +116,7 @@ export async function creerCommande(data: {
 }
 
 export async function envoyerCommande(id: string) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
@@ -124,6 +131,8 @@ export async function receptionnerLivraison(
   commandeId: string,
   lignes: { ligne_id: string; produit_id: string; quantite_commandee: number; quantite_recue: number; prix_unitaire?: number; note_ecart?: string }[]
 ) {
+  receptionnerLivraisonSchema.parse({ commandeId, lignes })
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
@@ -168,6 +177,7 @@ export async function receptionnerLivraison(
   if (cmdError) throw new Error(cmdError.message)
 
   revalidatePath('/commandes')
+  revalidatePath('/livraisons')
   revalidatePath('/stocks')
 
   // Retourner les écarts pour génération PDF côté client
@@ -178,14 +188,78 @@ export async function receptionnerLivraison(
     return pct > 5
   })
 
+  // Notification if ecarts detected
+  if (ecarts.length > 0) {
+    try {
+      await createNotification({
+        organizationId: organization_id,
+        type: 'ecart_livraison',
+        titre: `${ecarts.length} ecart(s) de livraison`,
+        message: `Commande ${commandeId} : ${ecarts.length} produit(s) avec ecart > 5%`,
+        canal: ['in_app', 'web_push'],
+      })
+    } catch {}
+  }
+
+  // Price tracking: record historical prices and auto-update
+  for (const ligne of lignes) {
+    if (ligne.prix_unitaire != null && ligne.prix_unitaire > 0) {
+      try {
+        // Get current price for comparison
+        const { data: produit } = await (supabase as any)
+          .from('produits')
+          .select('prix_unitaire')
+          .eq('id', ligne.produit_id)
+          .eq('organization_id', organization_id)
+          .single()
+
+        const prixPrecedent = produit?.prix_unitaire ?? null
+        const variationPct = prixPrecedent && prixPrecedent > 0
+          ? ((ligne.prix_unitaire - prixPrecedent) / prixPrecedent) * 100
+          : null
+
+        // Insert price history
+        await (supabase as any).from('prix_produit_historique').insert({
+          organization_id,
+          produit_id: ligne.produit_id,
+          prix: ligne.prix_unitaire,
+          prix_precedent: prixPrecedent,
+          variation_pct: variationPct ? Math.round(variationPct * 100) / 100 : null,
+          source: 'reception_bl',
+          commande_id: commandeId,
+          date_releve: new Date().toISOString().slice(0, 10),
+        })
+
+        // Auto-update product price
+        await (supabase as any)
+          .from('produits')
+          .update({ prix_unitaire: ligne.prix_unitaire })
+          .eq('id', ligne.produit_id)
+          .eq('organization_id', organization_id)
+
+        // Alert if price increase > 10%
+        if (variationPct && variationPct > 10) {
+          await createNotification({
+            organizationId: organization_id,
+            type: 'hausse_prix',
+            titre: `Hausse de prix > 10%`,
+            message: `+${variationPct.toFixed(1)}% sur un produit (${prixPrecedent?.toFixed(2)} → ${ligne.prix_unitaire.toFixed(2)} EUR)`,
+            canal: ['in_app', 'web_push'],
+          })
+        }
+      } catch {}
+    }
+  }
+
   return { statut, ecarts }
 }
 export async function supprimerFournisseur(id: string) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
     .from('fournisseurs')
-    .delete()
+    .update({ actif: false })
     .eq('id', id)
     .eq('organization_id', organization_id)
   if (error) throw new Error(error.message)

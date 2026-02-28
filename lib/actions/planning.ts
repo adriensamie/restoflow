@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { creerEmployeSchema, modifierEmployeSchema, creerCreneauSchema } from '@/lib/validations/planning'
+import { requireRole } from '@/lib/rbac'
 
 export async function creerEmploye(data: {
   prenom: string
@@ -16,6 +17,7 @@ export async function creerEmploye(data: {
   heures_contrat?: number
 }) {
   creerEmployeSchema.parse(data)
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { data: result, error } = await (supabase as any)
@@ -37,6 +39,7 @@ export async function modifierEmploye(id: string, data: {
   heures_contrat?: number
 }) {
   modifierEmployeSchema.parse(data)
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
@@ -47,6 +50,7 @@ export async function modifierEmploye(id: string, data: {
 }
 
 export async function archiverEmploye(id: string) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
@@ -66,6 +70,7 @@ export async function creerCreneau(data: {
   note?: string
 }) {
   creerCreneauSchema.parse(data)
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
@@ -76,7 +81,9 @@ export async function creerCreneau(data: {
 
   const [hd, md] = data.heure_debut.split(':').map(Number)
   const [hf, mf] = data.heure_fin.split(':').map(Number)
-  const heures = (hf * 60 + mf - hd * 60 - md) / 60
+  let minutes = hf * 60 + mf - (hd * 60 + md)
+  if (minutes < 0) minutes += 24 * 60
+  const heures = minutes / 60
   const cout = emp?.taux_horaire ? Math.round(heures * emp.taux_horaire * 100) / 100 : null
 
   const { data: result, error } = await (supabase as any)
@@ -89,6 +96,7 @@ export async function creerCreneau(data: {
 }
 
 export async function modifierStatutCreneau(id: string, statut: string) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
@@ -98,6 +106,7 @@ export async function modifierStatutCreneau(id: string, statut: string) {
 }
 
 export async function supprimerCreneau(id: string) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
@@ -107,6 +116,7 @@ export async function supprimerCreneau(id: string) {
 }
 
 export async function dupliquerSemaine(dateDebut: string, dateFin: string, offsetJours: number) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 

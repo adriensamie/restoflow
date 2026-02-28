@@ -1,21 +1,13 @@
 'use server'
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { auth } from '@clerk/nextjs/server'
+import { requireRole } from '@/lib/rbac'
 import { revalidatePath } from 'next/cache'
 
 export async function reinitialiserApplication() {
+  const staff = await requireRole(['patron'])
   const supabase = await createServerSupabaseClient()
-  const { orgId } = await auth()
-
-  const { data: org } = await (supabase as any)
-    .from('organizations')
-    .select('id')
-    .eq('clerk_org_id', orgId)
-    .single()
-
-  if (!org) throw new Error('Organisation non trouvée')
-  const id = org.id
+  const id = staff.orgId
 
   // Supprimer dans l'ordre (FK oblige)
   const tables = [
@@ -35,7 +27,7 @@ export async function reinitialiserApplication() {
     'commande_lignes',
     'commandes',
     'fournisseurs',
-    'cave_vins',
+    'vins',
     'produits',
   ]
 

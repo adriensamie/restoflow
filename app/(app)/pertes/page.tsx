@@ -2,8 +2,10 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 import { PertesHeader } from '@/components/stocks/pertes-header'
 import { PertesTable } from '@/components/stocks/pertes-table'
+import { requireRouteAccess } from '@/lib/require-route-access'
 
 export default async function PertesPage() {
+  await requireRouteAccess('/pertes')
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
 

@@ -3,6 +3,9 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { requireAccess } from '@/lib/billing'
+import { requireRole } from '@/lib/rbac'
+import { configCaisseSchema, eventManuelSchema } from '@/lib/validations/antifraud'
 
 export async function sauvegarderConfigCaisse(data: {
   source: string
@@ -12,11 +15,14 @@ export async function sauvegarderConfigCaisse(data: {
   seuil_alerte_annulation?: number
   alertes_actives?: boolean
 }) {
+  const validated = configCaisseSchema.parse(data)
+  await requireAccess('antifraud')
+  await requireRole(['patron'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
     .from('config_caisse')
-    .upsert({ ...data, organization_id }, { onConflict: 'organization_id' })
+    .upsert({ ...validated, organization_id }, { onConflict: 'organization_id' })
   if (error) throw new Error(error.message)
   revalidatePath('/antifraud')
 }
@@ -30,11 +36,14 @@ export async function ajouterEventManuel(data: {
   motif?: string
   service?: string
 }) {
+  const validated = eventManuelSchema.parse(data)
+  await requireAccess('antifraud')
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
     .from('events_caisse')
-    .insert({ ...data, organization_id, source: 'manuel' })
+    .insert({ ...validated, organization_id, source: 'manuel' })
   if (error) throw new Error(error.message)
   revalidatePath('/antifraud')
 }

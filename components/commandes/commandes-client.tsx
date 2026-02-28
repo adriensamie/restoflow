@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, ShoppingCart, Clock, CheckCircle, XCircle, Truck } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Plus, ShoppingCart, Clock, CheckCircle, XCircle, Truck, ScanLine } from 'lucide-react'
+import { NouvelleCommandeModal } from './nouvelle-commande-modal'
+import { AnalyserBLModal } from './analyser-bl-modal'
 
 
 const STATUT_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
@@ -33,7 +36,10 @@ export function CommandesClient({ commandes, fournisseurs }: {
   commandes: Commande[]
   fournisseurs: Fournisseur[]
 }) {
+  const router = useRouter()
   const [showModal, setShowModal] = useState(false)
+  const [showBLModal, setShowBLModal] = useState(false)
+  const [blPreRempli, setBlPreRempli] = useState<any>(null)
   const [filtreStatut, setFiltreStatut] = useState('tous')
 
   const commandesFiltrees = commandes.filter(c =>
@@ -57,11 +63,18 @@ export function CommandesClient({ commandes, fournisseurs }: {
             {commandes.length} commande{commandes.length > 1 ? 's' : ''}
           </p>
         </div>
-        <button onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
-          style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}>
-          <Plus size={16} />Nouvelle commande
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowBLModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+            style={{ background: '#1e2d4a', color: '#94a3b8' }}>
+            <ScanLine size={16} />Import BL
+          </button>
+          <button onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
+            style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}>
+            <Plus size={16} />Nouvelle commande
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -116,8 +129,9 @@ export function CommandesClient({ commandes, fournisseurs }: {
           const conf = STATUT_CONFIG[c.statut] ?? STATUT_CONFIG.brouillon
           const Icon = conf.icon
           return (
-            <div key={c.id} className="rounded-xl p-4 flex items-center justify-between"
-              style={{ background: '#0d1526', border: '1px solid #1e2d4a' }}>
+            <div key={c.id} className="rounded-xl p-4 flex items-center justify-between cursor-pointer hover:brightness-110 transition-all"
+              style={{ background: '#0d1526', border: '1px solid #1e2d4a' }}
+              onClick={() => router.push(`/commandes/${c.id}`)}>
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ background: conf.bg }}>
@@ -150,7 +164,24 @@ export function CommandesClient({ commandes, fournisseurs }: {
         })}
       </div>
 
+      {showModal && (
+        <NouvelleCommandeModal
+          fournisseurs={fournisseurs}
+          blPreRempli={blPreRempli}
+          onClose={() => { setShowModal(false); setBlPreRempli(null) }}
+        />
+      )}
 
+      {showBLModal && (
+        <AnalyserBLModal
+          onResultat={(resultat) => {
+            setBlPreRempli(resultat)
+            setShowBLModal(false)
+            setShowModal(true)
+          }}
+          onClose={() => setShowBLModal(false)}
+        />
+      )}
     </div>
   )
 }

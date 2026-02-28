@@ -118,6 +118,43 @@ export default async function LandingPage() {
         .footer-links { display:flex;gap:24px; }
         .footer-links a { font-size:13px;color:var(--muted);text-decoration:none;transition:color .2s; }
         .footer-links a:hover { color:var(--text); }
+        @media (max-width: 768px) {
+          nav { padding:12px 20px; }
+          .nav-links { gap:16px; }
+          .nav-links li:not(:last-child) { display:none; }
+          .hero { padding:100px 20px 60px; }
+          h1 { font-size:clamp(32px,10vw,52px);letter-spacing:-1px; }
+          .hero-sub { font-size:15px; }
+          .hero-actions { flex-direction:column;gap:12px; }
+          .hero-proof { flex-wrap:wrap;gap:16px; }
+          .proof-divider { display:none; }
+          .section { padding:60px 20px; }
+          .modules-grid { grid-template-columns:1fr; }
+          .ia-section { padding:60px 20px; }
+          .ia-layout { grid-template-columns:1fr;gap:40px; }
+          .stats-section { padding:40px 20px; }
+          .stats-grid { grid-template-columns:repeat(2,1fr);gap:24px; }
+          .pricing-section { padding:60px 20px; }
+          .pricing-grid { grid-template-columns:1fr;max-width:400px; }
+          .testimonials-section { padding:60px 20px; }
+          .testimonials-grid { grid-template-columns:1fr; }
+          .cta-section { padding:60px 20px; }
+          footer { padding:30px 20px;flex-direction:column;gap:16px;text-align:center; }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+          nav { padding:16px 30px; }
+          .hero { padding:120px 30px 80px; }
+          .section { padding:80px 30px; }
+          .modules-grid { grid-template-columns:repeat(2,1fr); }
+          .ia-section { padding:80px 30px; }
+          .stats-section { padding:60px 30px; }
+          .pricing-section { padding:80px 30px; }
+          .pricing-grid { grid-template-columns:1fr 1fr; }
+          .testimonials-section { padding:80px 30px; }
+          .testimonials-grid { grid-template-columns:1fr 1fr; }
+          .cta-section { padding:80px 30px; }
+          footer { padding:40px 30px; }
+        }
       `}</style>
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
 
@@ -139,7 +176,7 @@ export default async function LandingPage() {
           <h1>La gestion<br/><em>intelligente</em><br/>de votre restaurant</h1>
           <p className="hero-sub">Stocks, food cost, planning, HACCP et prévisions IA — tout ce dont vous avez besoin pour piloter votre restaurant avec précision.</p>
           <div className="hero-actions">
-            <a href="/sign-up" className="btn-primary">Démarrer gratuitement <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+            <a href="/sign-up" className="btn-primary">Démarrer gratuitement <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
             <a href="#fonctionnalites" className="btn-secondary">Voir les fonctionnalités</a>
           </div>
           <div className="hero-proof">
@@ -156,7 +193,7 @@ export default async function LandingPage() {
 
       <section className="section" id="fonctionnalites">
         <div className="reveal">
-          <span className="section-tag">// 15 modules intégrés</span>
+          <span className="section-tag">// 9 modules intégrés</span>
           <h2 className="section-title">Tout ce qu'il faut<br/>pour bien gérer</h2>
           <p className="section-sub">Une plateforme complète pensée pour les restaurateurs, pas pour les comptables.</p>
         </div>
@@ -233,7 +270,7 @@ export default async function LandingPage() {
       <section className="pricing-section" id="tarifs">
         <div style={{textAlign:'center'}} className="reveal">
           <span className="section-tag">// Tarification simple</span>
-          <h2 className="section-title">Un prix, pas de surprises</h2>
+          <h2 className="section-title">Des tarifs clairs, sans surprises</h2>
           <p className="section-sub" style={{margin:'0 auto 60px'}}>Essai gratuit 14 jours · Sans carte bancaire · Résiliation à tout moment.</p>
         </div>
         <div className="pricing-grid reveal">
@@ -303,15 +340,15 @@ export default async function LandingPage() {
           <h2>Prêt à transformer<br/>votre restaurant ?</h2>
           <p>Rejoignez 500+ restaurateurs qui pilotent leur activité avec RestoFlow.</p>
           <div className="cta-actions">
-            <a href="/sign-up" className="btn-primary">Essai gratuit 14 jours <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+            <a href="/sign-up" className="btn-primary">Essai gratuit 14 jours <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
             <a href="mailto:hello@restoflow.fr" className="btn-secondary">Demander une démo</a>
           </div>
         </div>
       </section>
 
       <footer>
-        <div className="logo"><div className="logo-dot"></div>RestoFlow Pro</div>
-        <div className="footer-links"><a href="#">CGU</a><a href="#">Confidentialité</a><a href="#">Contact</a></div>
+        <div className="logo"><div className="logo-dot"></div>RestoFlow</div>
+        <div className="footer-links"><a href="/cgu">CGU</a><a href="/confidentialite">Confidentialite</a><a href="mailto:hello@restoflow.fr">Contact</a></div>
         <div className="footer-copy">© 2026 RestoFlow · Tous droits réservés</div>
       </footer>
 

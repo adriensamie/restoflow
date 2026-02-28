@@ -95,7 +95,9 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
     try {
       const produit = produits.find(p => p.id === newIngr.produit_id)
       const vin = vins.find(v => v.id === newIngr.vin_id)
-      const coutUnitaire = produit?.prix_unitaire_ht ? produit.prix_unitaire_ht / 1000 : vin?.prix_achat_ht ?? 0
+      const coutUnitaire = produit?.prix_unitaire_ht
+        ? (['kg'].includes(produit.unite || '') ? produit.prix_unitaire_ht / 1000 : ['L'].includes(produit.unite || '') ? produit.prix_unitaire_ht / 100 : produit.prix_unitaire_ht)
+        : vin?.prix_achat_ht ?? 0
       await ajouterIngredient({
         recette_id: recetteId,
         produit_id: newIngr.produit_id || undefined,

@@ -17,7 +17,7 @@ export const creerVinSchema = z.object({
 
 export const mouvementCaveSchema = z.object({
   vin_id: z.string().uuid(),
-  type: z.enum(['entree', 'sortie_bouteille', 'casse', 'inventaire']),
+  type: z.enum(['entree', 'sortie_bouteille', 'sortie_verre', 'casse', 'inventaire']),
   quantite: z.number().positive(),
   prix_unitaire: z.number().min(0).optional(),
   note: z.string().max(500).optional(),

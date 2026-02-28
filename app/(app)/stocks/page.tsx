@@ -2,8 +2,10 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 import { StocksTable } from '@/components/stocks/stocks-table'
 import { StocksHeader } from '@/components/stocks/stocks-header'
+import { requireRouteAccess } from '@/lib/require-route-access'
 
 export default async function StocksPage() {
+  await requireRouteAccess('/stocks')
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
 

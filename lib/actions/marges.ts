@@ -3,6 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { requireRole } from '@/lib/rbac'
 
 export async function sauvegarderObjectifs(data: {
   mois: string
@@ -11,6 +12,7 @@ export async function sauvegarderObjectifs(data: {
   marge_nette_cible: number
   ca_cible?: number
 }) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
@@ -28,6 +30,7 @@ export async function sauvegarderSnapshot(data: {
   nb_couverts?: number
   source?: string
 }) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 

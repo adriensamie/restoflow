@@ -1,8 +1,10 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 import { PrevisionsClient } from '@/components/previsions/previsions-client'
+import { requireRouteAccess } from '@/lib/require-route-access'
 
 export default async function PrevisionsPage() {
+  await requireRouteAccess('/previsions')
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
 

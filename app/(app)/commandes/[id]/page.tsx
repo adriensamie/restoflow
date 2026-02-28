@@ -3,7 +3,8 @@ import { auth } from '@clerk/nextjs/server'
 import { ReceptionClient } from '@/components/commandes/reception-client'
 import { notFound } from 'next/navigation'
 
-export default async function CommandeDetailPage({ params }: { params: { id: string } }) {
+export default async function CommandeDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
 
@@ -14,7 +15,7 @@ export default async function CommandeDetailPage({ params }: { params: { id: str
   const { data: commande } = await (supabase as any)
     .from('commandes')
     .select('*, fournisseurs(nom, contact_telephone, contact_email)')
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('organization_id', orgUUID)
     .single()
 
@@ -23,7 +24,7 @@ export default async function CommandeDetailPage({ params }: { params: { id: str
   const { data: lignes } = await (supabase as any)
     .from('commande_lignes')
     .select('*, produits(nom, unite, categorie)')
-    .eq('commande_id', params.id)
+    .eq('commande_id', id)
     .order('created_at')
 
   return <ReceptionClient commande={commande} lignes={lignes ?? []} />

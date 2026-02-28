@@ -26,6 +26,7 @@ export interface Database {
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
+          parent_organization_id: string | null
           seuil_ecart_livraison: number
           timezone: string
           devise: string
@@ -47,6 +48,7 @@ export interface Database {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
+          parent_organization_id?: string | null
           seuil_ecart_livraison?: number
           timezone?: string
           devise?: string
@@ -68,6 +70,7 @@ export interface Database {
           clerk_user_id: string | null
           clerk_org_role: string | null
           pin_hash: string | null
+          pin_changed_at: string | null
           role: 'patron' | 'manager' | 'employe' | 'livreur'
           permissions: Json
           type_contrat: 'CDI' | 'CDD' | 'Apprentissage' | 'Extra' | 'Freelance' | null
@@ -88,6 +91,7 @@ export interface Database {
           clerk_user_id?: string | null
           clerk_org_role?: string | null
           pin_hash?: string | null
+          pin_changed_at?: string | null
           role?: 'patron' | 'manager' | 'employe' | 'livreur'
           permissions?: Json
           type_contrat?: 'CDI' | 'CDD' | 'Apprentissage' | 'Extra' | 'Freelance' | null
@@ -109,6 +113,7 @@ export interface Database {
           unite: string
           prix_unitaire: number | null
           seuil_alerte: number
+          allergenes: string[] | null
           actif: boolean
           created_at: string
           updated_at: string
@@ -122,6 +127,7 @@ export interface Database {
           unite?: string
           prix_unitaire?: number | null
           seuil_alerte?: number
+          allergenes?: string[] | null
           actif?: boolean
         }
         Update: Partial<Database['public']['Tables']['produits']['Insert']>
@@ -165,6 +171,9 @@ export interface Database {
           adresse: string | null
           delai_livraison: number | null
           conditions_paiement: string | null
+          score_fiabilite: number | null
+          nb_livraisons: number
+          nb_ecarts: number
           actif: boolean
           created_at: string
           updated_at: string
@@ -179,6 +188,9 @@ export interface Database {
           adresse?: string | null
           delai_livraison?: number | null
           conditions_paiement?: string | null
+          score_fiabilite?: number | null
+          nb_livraisons?: number
+          nb_ecarts?: number
           actif?: boolean
         }
         Update: Partial<Database['public']['Tables']['fournisseurs']['Insert']>
@@ -195,6 +207,8 @@ export interface Database {
           unite_commande: string | null
           qte_min: number | null
           fournisseur_principal: boolean
+          facteur_conversion: number | null
+          unite_reference: string | null
           created_at: string
         }
         Insert: {
@@ -207,6 +221,8 @@ export interface Database {
           unite_commande?: string | null
           qte_min?: number | null
           fournisseur_principal?: boolean
+          facteur_conversion?: number | null
+          unite_reference?: string | null
         }
         Update: Partial<Database['public']['Tables']['produit_fournisseur']['Insert']>
       }
@@ -758,6 +774,219 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['haccp_templates']['Insert']>
       }
+
+      role_permissions: {
+        Row: {
+          id: string
+          organization_id: string
+          role: 'manager' | 'employe' | 'livreur'
+          allowed_routes: string[]
+          allowed_actions: string[]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          role: 'manager' | 'employe' | 'livreur'
+          allowed_routes: string[]
+          allowed_actions?: string[]
+        }
+        Update: Partial<Database['public']['Tables']['role_permissions']['Insert']>
+      }
+
+      pin_sessions: {
+        Row: {
+          id: string
+          organization_id: string
+          staff_id: string
+          token_hash: string
+          expires_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          staff_id: string
+          token_hash: string
+          expires_at: string
+        }
+        Update: Partial<Database['public']['Tables']['pin_sessions']['Insert']>
+      }
+
+      retours_fournisseur: {
+        Row: {
+          id: string
+          organization_id: string
+          commande_id: string
+          fournisseur_id: string
+          numero: string
+          statut: 'brouillon' | 'envoye' | 'accepte' | 'refuse' | 'rembourse'
+          total_ht: number | null
+          pdf_url: string | null
+          envoye_par_email: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          commande_id: string
+          fournisseur_id: string
+          numero: string
+          statut?: 'brouillon' | 'envoye' | 'accepte' | 'refuse' | 'rembourse'
+          total_ht?: number | null
+          pdf_url?: string | null
+          envoye_par_email?: boolean
+        }
+        Update: Partial<Database['public']['Tables']['retours_fournisseur']['Insert']>
+      }
+
+      lignes_retour: {
+        Row: {
+          id: string
+          retour_id: string
+          produit_id: string
+          quantite_retournee: number
+          prix_unitaire: number | null
+          motif: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          retour_id: string
+          produit_id: string
+          quantite_retournee: number
+          prix_unitaire?: number | null
+          motif?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['lignes_retour']['Insert']>
+      }
+
+      notifications: {
+        Row: {
+          id: string
+          organization_id: string
+          staff_id: string | null
+          type: string
+          titre: string
+          message: string
+          lue: boolean
+          metadata: Json | null
+          canal: string[]
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          staff_id?: string | null
+          type: string
+          titre: string
+          message: string
+          lue?: boolean
+          metadata?: Json | null
+          canal?: string[]
+        }
+        Update: Partial<Database['public']['Tables']['notifications']['Insert']>
+      }
+
+      notification_preferences: {
+        Row: {
+          id: string
+          organization_id: string
+          staff_id: string
+          type: string
+          in_app: boolean
+          web_push: boolean
+          email: boolean
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          staff_id: string
+          type: string
+          in_app?: boolean
+          web_push?: boolean
+          email?: boolean
+        }
+        Update: Partial<Database['public']['Tables']['notification_preferences']['Insert']>
+      }
+
+      push_subscriptions: {
+        Row: {
+          id: string
+          organization_id: string
+          staff_id: string
+          endpoint: string
+          p256dh: string
+          auth_key: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          staff_id: string
+          endpoint: string
+          p256dh: string
+          auth_key: string
+        }
+        Update: Partial<Database['public']['Tables']['push_subscriptions']['Insert']>
+      }
+
+      prix_produit_historique: {
+        Row: {
+          id: string
+          organization_id: string
+          produit_id: string
+          fournisseur_id: string | null
+          prix: number
+          prix_precedent: number | null
+          variation_pct: number | null
+          source: string
+          date_releve: string
+          commande_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          produit_id: string
+          fournisseur_id?: string | null
+          prix: number
+          prix_precedent?: number | null
+          variation_pct?: number | null
+          source?: string
+          date_releve?: string
+          commande_id?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['prix_produit_historique']['Insert']>
+      }
+
+      lots_produit: {
+        Row: {
+          id: string
+          organization_id: string
+          produit_id: string
+          numero_lot: string | null
+          quantite: number
+          dlc: string | null
+          dluo: string | null
+          statut: 'actif' | 'consomme' | 'expire' | 'jete'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          produit_id: string
+          numero_lot?: string | null
+          quantite: number
+          dlc?: string | null
+          dluo?: string | null
+          statut?: 'actif' | 'consomme' | 'expire' | 'jete'
+        }
+        Update: Partial<Database['public']['Tables']['lots_produit']['Insert']>
+      }
     }
 
     Views: {
@@ -817,3 +1046,13 @@ export type FichePaie = Database['public']['Tables']['fiches_paie']['Row']
 export type HaccpReleve = Database['public']['Tables']['haccp_releves']['Row']
 export type HaccpTemplate = Database['public']['Tables']['haccp_templates']['Row']
 export type Prevision = Database['public']['Tables']['previsions']['Row']
+export type RolePermission = Database['public']['Tables']['role_permissions']['Row']
+export type PinSession = Database['public']['Tables']['pin_sessions']['Row']
+export type RetourFournisseur = Database['public']['Tables']['retours_fournisseur']['Row']
+export type LigneRetour = Database['public']['Tables']['lignes_retour']['Row']
+export type Notification = Database['public']['Tables']['notifications']['Row']
+export type NotificationPreference = Database['public']['Tables']['notification_preferences']['Row']
+export type PushSubscription = Database['public']['Tables']['push_subscriptions']['Row']
+export type PrixHistorique = Database['public']['Tables']['prix_produit_historique']['Row']
+export type LotProduit = Database['public']['Tables']['lots_produit']['Row']
+export type ProduitFournisseur = Database['public']['Tables']['produit_fournisseur']['Row']

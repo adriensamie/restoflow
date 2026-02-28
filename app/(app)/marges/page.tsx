@@ -1,8 +1,10 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 import { MargesClient } from '@/components/marges/marges-client'
+import { requireRouteAccess } from '@/lib/require-route-access'
 
 export default async function MargesPage() {
+  await requireRouteAccess('/marges')
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
 

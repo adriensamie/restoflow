@@ -3,6 +3,7 @@ import { Webhook } from 'svix'
 import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { stripe } from '@/lib/stripe'
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
@@ -43,12 +44,19 @@ export async function POST(req: Request) {
       const trialEndsAt = new Date()
       trialEndsAt.setDate(trialEndsAt.getDate() + 14)
 
+      // Create Stripe customer
+      const customer = await stripe.customers.create({
+        name: data.name,
+        metadata: { clerk_org_id: data.id },
+      })
+
       await supabase.from('organizations').insert({
         clerk_org_id: data.id,
         nom: data.name,
         slug: data.slug ?? null,
         plan: 'trial',
         trial_ends_at: trialEndsAt.toISOString(),
+        stripe_customer_id: customer.id,
       })
     }
 
@@ -67,13 +75,17 @@ export async function POST(req: Request) {
         .single()
 
       if (org) {
+        const firstName = data.public_user_data?.first_name || ''
+        const lastName = data.public_user_data?.last_name || ''
+        const initiales = ((firstName?.[0] || '') + (lastName?.[0] || '')).toUpperCase() || 'XX'
         await supabase.from('staff').upsert({
           organization_id: org.id,
           clerk_user_id: data.public_user_data?.user_id,
           clerk_org_role: data.role,
-          nom: data.public_user_data?.last_name || 'Sans nom',
-          prenom: data.public_user_data?.first_name || 'Sans prénom',
-          email: data.public_user_data?.email_addresses?.[0]?.email_address ?? null,
+          nom: lastName || 'Sans nom',
+          prenom: firstName || 'Sans prénom',
+          initiales,
+          email: data.public_user_data?.identifier ?? null,
           role: data.role === 'org:admin' ? 'patron' : 'employe',
           actif: true,
         }, { onConflict: 'clerk_user_id' })
@@ -81,10 +93,19 @@ export async function POST(req: Request) {
     }
 
     if (eventType === 'organizationMembership.deleted') {
-      await supabase
-        .from('staff')
-        .update({ actif: false })
-        .eq('clerk_user_id', data.public_user_data?.user_id)
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('clerk_org_id', data.organization?.id)
+        .single()
+
+      if (org) {
+        await supabase
+          .from('staff')
+          .update({ actif: false })
+          .eq('clerk_user_id', data.public_user_data?.user_id)
+          .eq('organization_id', org.id)
+      }
     }
 
     return NextResponse.json({ success: true })

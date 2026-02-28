@@ -4,6 +4,8 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { creerVinSchema, mouvementCaveSchema } from '@/lib/validations/cave'
+import { requireAccess } from '@/lib/billing'
+import { requireRole } from '@/lib/rbac'
 
 export async function creerVin(data: {
   nom: string
@@ -19,6 +21,8 @@ export async function creerVin(data: {
   stock_bouteilles?: number
   seuil_alerte?: number
 }) {
+  await requireAccess('cave')
+  await requireRole(['patron', 'manager'])
   creerVinSchema.parse(data)
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
@@ -42,6 +46,8 @@ export async function modifierVin(id: string, data: {
   contenance_verre?: number | null
   seuil_alerte?: number
 }) {
+  await requireAccess('cave')
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
@@ -57,6 +63,8 @@ export async function ajouterMouvementCave(data: {
   prix_unitaire?: number
   note?: string
 }) {
+  await requireAccess('cave')
+  await requireRole(['patron', 'manager'])
   mouvementCaveSchema.parse(data)
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
@@ -71,7 +79,7 @@ export async function ajouterMouvementCave(data: {
   if (vin) {
     let delta = 0
     if (data.type === 'entree') delta = data.quantite
-    if (data.type === 'sortie_bouteille' || data.type === 'casse') delta = -data.quantite
+    if (data.type === 'sortie_bouteille' || data.type === 'sortie_verre' || data.type === 'casse') delta = -data.quantite
     if (data.type === 'inventaire') {
       const { error: updErr } = await (supabase as any).from('vins')
         .update({ stock_bouteilles: data.quantite }).eq('id', data.vin_id).eq('organization_id', organization_id)
@@ -89,6 +97,8 @@ export async function ajouterMouvementCave(data: {
 }
 
 export async function archiverVin(id: string) {
+  await requireAccess('cave')
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)

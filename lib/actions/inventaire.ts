@@ -2,18 +2,22 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
+import { requireRole } from '@/lib/rbac'
 import { revalidatePath } from 'next/cache'
+import { creerSessionSchema, ligneInventaireSessionSchema } from '@/lib/validations/inventaire'
 
 export async function creerSessionInventaire(data: {
   nom: string
   zone: string
   note?: string
 }) {
+  const validated = creerSessionSchema.parse(data)
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { data: result, error } = await (supabase as any)
     .from('sessions_inventaire')
-    .insert({ ...data, organization_id }).select().single()
+    .insert({ ...validated, organization_id }).select().single()
   if (error) throw new Error(error.message)
   revalidatePath('/inventaire')
   return result
@@ -28,15 +32,27 @@ export async function sauvegarderLigneInventaire(data: {
   unite?: string
   note?: string
 }) {
+  const validated = ligneInventaireSessionSchema.parse(data)
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
-  const { error } = await (supabase as any)
-    .from('lignes_inventaire')
-    .upsert(
-      { ...data, organization_id, counted_at: new Date().toISOString() },
-      { onConflict: 'session_id,produit_id' }
-    )
-  if (error) throw new Error(error.message)
+  if (data.produit_id) {
+    const { error } = await (supabase as any)
+      .from('lignes_inventaire')
+      .upsert(
+        { ...data, organization_id, counted_at: new Date().toISOString() },
+        { onConflict: 'session_id,produit_id' }
+      )
+    if (error) throw new Error(error.message)
+  } else if (data.vin_id) {
+    const { error } = await (supabase as any)
+      .from('lignes_inventaire')
+      .upsert(
+        { ...data, organization_id, counted_at: new Date().toISOString() },
+        { onConflict: 'session_id,vin_id' }
+      )
+    if (error) throw new Error(error.message)
+  }
   revalidatePath('/inventaire')
   return true
 }

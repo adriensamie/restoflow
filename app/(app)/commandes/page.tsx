@@ -1,8 +1,10 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 import { CommandesClient } from '@/components/commandes/commandes-client'
+import { requireRouteAccess } from '@/lib/require-route-access'
 
 export default async function CommandesPage() {
+  await requireRouteAccess('/commandes')
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
 

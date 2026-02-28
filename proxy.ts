@@ -9,6 +9,9 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks/(.*)',
   '/api/pos/webhook/(.*)',
   '/commande/(.*)',
+  '/kiosk(.*)',
+  '/cgu',
+  '/confidentialite',
 ])
 
 const handler = clerkMiddleware(async (auth, req) => {

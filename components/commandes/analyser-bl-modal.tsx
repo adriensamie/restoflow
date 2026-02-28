@@ -35,6 +35,10 @@ export function AnalyserBLModal({ onResultat, onClose }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const handleFile = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Le fichier dépasse 5 Mo. Veuillez réduire la taille de l\'image.')
+      return
+    }
     setMimeType(file.type || 'image/jpeg')
     const reader = new FileReader()
     reader.onload = e => {
@@ -57,7 +61,7 @@ export function AnalyserBLModal({ onResultat, onClose }: Props) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Erreur analyse')
-      setResultat(data)
+      setResultat(data.data)
       setStep('resultat')
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Erreur inconnue')

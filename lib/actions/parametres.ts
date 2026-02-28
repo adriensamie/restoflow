@@ -1,8 +1,9 @@
 'use server'
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { auth } from '@clerk/nextjs/server'
+import { requireRole } from '@/lib/rbac'
 import { revalidatePath } from 'next/cache'
+import { sauvegarderParametresSchema } from '@/lib/validations/parametres'
 
 export async function sauvegarderParametres(data: {
   nom: string
@@ -17,34 +18,27 @@ export async function sauvegarderParametres(data: {
   devise?: string
   nb_couverts_moyen?: number
 }) {
+  const validated = sauvegarderParametresSchema.parse(data)
+  const staff = await requireRole(['patron'])
   const supabase = await createServerSupabaseClient()
-  const { orgId } = await auth()
-
-  const { data: org } = await (supabase as any)
-    .from('organizations')
-    .select('id')
-    .eq('clerk_org_id', orgId)
-    .single()
-
-  if (!org) throw new Error('Organisation non trouvée')
 
   const { error } = await (supabase as any)
     .from('organizations')
     .update({
-      nom: data.nom,
-      adresse: data.adresse,
-      telephone: data.telephone,
-      email: data.email,
-      siret: data.siret,
-      tva_intracom: data.tva_intracom,
-      taux_tva_defaut: data.taux_tva_defaut,
-      objectif_food_cost: data.objectif_food_cost,
-      timezone: data.timezone || 'Europe/Paris',
-      devise: data.devise || 'EUR',
-      nb_couverts_moyen: data.nb_couverts_moyen,
+      nom: validated.nom,
+      adresse: validated.adresse,
+      telephone: validated.telephone,
+      email_contact: validated.email,
+      siret: validated.siret,
+      tva_intracom: validated.tva_intracom,
+      taux_tva_defaut: validated.taux_tva_defaut,
+      objectif_food_cost: validated.objectif_food_cost,
+      timezone: validated.timezone || 'Europe/Paris',
+      devise: validated.devise || 'EUR',
+      nb_couverts_moyen: validated.nb_couverts_moyen,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', org.id)
+    .eq('id', staff.orgId)
 
   if (error) throw error
   revalidatePath('/parametres')

@@ -1,8 +1,10 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 import { AlertesClient } from '@/components/alertes/alertes-client'
+import { requireRouteAccess } from '@/lib/require-route-access'
 
 export default async function AlertesPage() {
+  await requireRouteAccess('/alertes')
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
 
@@ -22,10 +24,9 @@ export default async function AlertesPage() {
   ] = await Promise.all([
     // Stocks sous seuil d'alerte
     (supabase as any)
-      .from('produits')
+      .from('stock_actuel')
       .select('id, nom, categorie, stock_actuel, seuil_alerte, unite')
       .eq('organization_id', orgUUID)
-      .eq('actif', true)
       .not('seuil_alerte', 'is', null)
       .lt('stock_actuel', (supabase as any).raw?.('seuil_alerte') || 0)
       .order('stock_actuel'),
@@ -41,19 +42,19 @@ export default async function AlertesPage() {
     // Non conformités HACCP
     (supabase as any)
       .from('haccp_releves')
-      .select('nom_controle, resultat, action_corrective, releve_at')
+      .select('nom_controle, resultat, action_corrective, created_at')
       .eq('organization_id', orgUUID)
       .in('resultat', ['non_conforme', 'action_corrective'])
-      .gte('releve_at', debut30j)
-      .order('releve_at', { ascending: false })
+      .gte('created_at', debut30j)
+      .order('created_at', { ascending: false })
       .limit(10),
     // Annulations suspectes caisse
     (supabase as any)
       .from('events_caisse')
-      .select('montant, employe_nom, event_at, motif')
+      .select('montant, employe_nom, created_at, motif')
       .eq('organization_id', orgUUID)
       .eq('event_type', 'annulation_ticket')
-      .gte('event_at', debut30j)
+      .gte('created_at', debut30j)
       .order('montant', { ascending: false })
       .limit(10),
     // Prévisions non saisies

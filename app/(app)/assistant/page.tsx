@@ -1,8 +1,10 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 import { AssistantClient } from '@/components/assistant/assistant-client'
+import { requireRouteAccess } from '@/lib/require-route-access'
 
 export default async function AssistantPage() {
+  await requireRouteAccess('/assistant')
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
 

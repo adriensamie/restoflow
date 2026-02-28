@@ -1,8 +1,10 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 import { HaccpClient } from '@/components/haccp/haccp-client'
+import { requireRouteAccess } from '@/lib/require-route-access'
 
 export default async function HygienePage() {
+  await requireRouteAccess('/hygiene')
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
 

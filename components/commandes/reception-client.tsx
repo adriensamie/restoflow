@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { CheckCircle, AlertTriangle, Loader2, ArrowLeft } from 'lucide-react'
+import { CheckCircle, AlertTriangle, Loader2, ArrowLeft, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import { receptionnerLivraison, envoyerCommande } from '@/lib/actions/commandes'
+import { RetourModal } from '@/components/commandes/retour-modal'
 
 interface Ligne {
   id: string
@@ -33,6 +34,7 @@ export function ReceptionClient({ commande, lignes }: Props) {
   const [ecarts, setEcarts] = useState<any[]>([])
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showRetourModal, setShowRetourModal] = useState(false)
 
   const dejaRecu = ['recue', 'recue_partielle', 'annulee'].includes(commande.statut)
 
@@ -75,15 +77,18 @@ export function ReceptionClient({ commande, lignes }: Props) {
             Les stocks ont été mis à jour automatiquement.
           </p>
           {ecarts.length > 0 && (
-            <div className="rounded-lg p-4 text-left space-y-2"
+            <div className="rounded-lg p-4 text-left space-y-3"
               style={{ background: '#2d1500', border: '1px solid #92400e' }}>
               <p className="text-sm font-semibold" style={{ color: '#fbbf24' }}>
                 <AlertTriangle size={14} className="inline mr-1" />
                 {ecarts.length} écart{ecarts.length > 1 ? 's' : ''} détecté{ecarts.length > 1 ? 's' : ''} (&gt;5%)
               </p>
-              <p className="text-xs" style={{ color: '#f59e0b' }}>
-                Vérifiez les bons de retour à envoyer au fournisseur.
-              </p>
+              <button onClick={() => setShowRetourModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
+                style={{ background: 'linear-gradient(135deg, #dc2626, #f97316)' }}>
+                <RotateCcw size={14} />
+                Creer un bon de retour
+              </button>
             </div>
           )}
           <Link href="/commandes"
@@ -92,6 +97,28 @@ export function ReceptionClient({ commande, lignes }: Props) {
             Retour aux commandes
           </Link>
         </div>
+
+        {showRetourModal && (
+          <RetourModal
+            commandeId={commande.id}
+            fournisseurId={''}
+            fournisseurEmail={commande.fournisseurs?.contact_email ?? null}
+            ecarts={ecarts.map(e => {
+              const ligne = lignes.find(l => l.id === e.ligne_id)
+              return {
+                ligne_id: e.ligne_id,
+                produit_id: e.produit_id,
+                produit_nom: ligne?.produits?.nom ?? 'Produit',
+                unite: ligne?.produits?.unite ?? '',
+                quantite_commandee: e.quantite_commandee,
+                quantite_recue: e.quantite_recue,
+                prix_unitaire: e.prix_unitaire,
+                note_ecart: e.note_ecart,
+              }
+            })}
+            onClose={() => setShowRetourModal(false)}
+          />
+        )}
       </div>
     )
   }
@@ -185,7 +212,27 @@ export function ReceptionClient({ commande, lignes }: Props) {
         </div>
       )}
 
-      {!dejaRecu && (
+      {commande.statut === 'brouillon' && (
+        <div className="flex justify-end gap-3">
+          <button onClick={() => {
+            setError(null)
+            startTransition(async () => {
+              try {
+                await envoyerCommande(commande.id)
+              } catch (e) {
+                setError(e instanceof Error ? e.message : "Erreur lors de l'envoi")
+              }
+            })
+          }} disabled={isPending}
+            className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium text-white"
+            style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}>
+            {isPending ? <Loader2 size={16} className="animate-spin" /> : null}
+            Envoyer au fournisseur
+          </button>
+        </div>
+      )}
+
+      {!dejaRecu && commande.statut !== 'brouillon' && (
         <div className="flex justify-end">
           <button onClick={handleReceptionner} disabled={isPending}
             className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium text-white"

@@ -59,12 +59,20 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Placeholder modules à venir */}
-      <div className="rounded-xl p-6 mt-4" style={{ background: '#0d1526', border: '1px dashed #1e2d4a' }}>
-        <p className="text-sm font-medium mb-1" style={{ color: '#4a6fa5' }}>Prochaines étapes</p>
-        <p className="text-sm" style={{ color: '#2d4a7a' }}>
-          Module 02 — Stocks en cours de développement...
-        </p>
+      {/* Navigation rapide */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+        {[
+          { label: 'Stocks', href: '/stocks', icon: '📦' },
+          { label: 'Commandes', href: '/commandes', icon: '🛒' },
+          { label: 'Planning', href: '/planning', icon: '👥' },
+          { label: 'HACCP', href: '/hygiene', icon: '🧼' },
+        ].map(m => (
+          <a key={m.href} href={m.href} className="rounded-xl p-4 flex items-center gap-3 transition-all hover:scale-[1.02]"
+            style={{ background: '#0d1526', border: '1px solid #1e2d4a' }}>
+            <span className="text-xl">{m.icon}</span>
+            <span className="text-sm font-medium" style={{ color: '#e2e8f0' }}>{m.label}</span>
+          </a>
+        ))}
       </div>
     </div>
   )

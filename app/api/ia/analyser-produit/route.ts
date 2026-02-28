@@ -1,11 +1,27 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
+import { checkAccess } from '@/lib/billing'
+import { withRateLimit } from '@/lib/api-rate-limit'
 
 const client = new Anthropic()
 
-export async function POST(req: NextRequest) {
+export const POST = withRateLimit(async function POST(req: NextRequest) {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  const access = await checkAccess('import_bl')
+  if (!access.allowed) return NextResponse.json({ error: 'Fonctionnalité réservée au plan Pro.' }, { status: 403 })
+
   try {
     const { imageBase64, mimeType } = await req.json()
+
+    const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    if (!ALLOWED_MIME.includes(mimeType)) {
+      return NextResponse.json({ error: 'Type de fichier non supporte' }, { status: 400 })
+    }
+    if (!imageBase64 || imageBase64.length > 10 * 1024 * 1024 * 1.37) {
+      return NextResponse.json({ error: 'Image trop volumineuse (max 10 Mo)' }, { status: 413 })
+    }
 
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -33,7 +49,7 @@ export async function POST(req: NextRequest) {
     const data = JSON.parse(jsonMatch[0])
     return NextResponse.json({ success: true, data })
   } catch (e: any) {
-    console.error('ANALYSER-PRODUIT ERROR:', e.message)
-    return NextResponse.json({ error: e.message }, { status: 500 })
+    console.error('ANALYSER-PRODUIT ERROR:', e)
+    return NextResponse.json({ error: 'Erreur lors de l\'analyse du produit' }, { status: 500 })
   }
-}
+}, { maxRequests: 10, windowMs: 60 * 1000, prefix: 'ia-produit' })

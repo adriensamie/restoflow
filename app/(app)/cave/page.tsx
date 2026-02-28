@@ -1,8 +1,10 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 import { CaveClient } from '@/components/cave/cave-client'
+import { requireRouteAccess } from '@/lib/require-route-access'
 
 export default async function CavePage() {
+  await requireRouteAccess('/cave')
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
 

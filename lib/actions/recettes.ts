@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { creerRecetteSchema, ajouterIngredientSchema } from '@/lib/validations/recettes'
+import { requireRole } from '@/lib/rbac'
 
 export async function creerRecette(data: {
   nom: string
@@ -16,6 +17,7 @@ export async function creerRecette(data: {
   importe_ia?: boolean
 }) {
   creerRecetteSchema.parse(data)
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { data: result, error } = await (supabase as any)
@@ -35,6 +37,7 @@ export async function modifierRecette(id: string, data: {
   allergenes?: string[] | null
   importe_ia?: boolean
 }) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
@@ -53,6 +56,7 @@ export async function ajouterIngredient(data: {
   ordre?: number
 }) {
   ajouterIngredientSchema.parse(data)
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
@@ -63,6 +67,7 @@ export async function ajouterIngredient(data: {
 }
 
 export async function supprimerIngredient(id: string, recetteId: string) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
@@ -73,6 +78,7 @@ export async function supprimerIngredient(id: string, recetteId: string) {
 }
 
 export async function recalculerCouts(recetteId: string) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
 
@@ -115,6 +121,7 @@ export async function recalculerCouts(recetteId: string) {
 }
 
 export async function archiverRecette(id: string) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   const { error } = await (supabase as any)
@@ -123,6 +130,7 @@ export async function archiverRecette(id: string) {
   revalidatePath('/recettes')
 }
 export async function supprimerRecette(id: string) {
+  await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
   // Supprimer d'abord les ingrédients

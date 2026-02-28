@@ -1,18 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { Bell, AlertTriangle, Package, Thermometer, ShieldAlert, TrendingDown, CheckCircle } from 'lucide-react'
+import { Bell, AlertTriangle, Package, Thermometer, ShieldAlert, TrendingDown, TrendingUp, CheckCircle } from 'lucide-react'
 
-export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulationsSuspectes, previsions }: {
+export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulationsSuspectes, previsions, haussesPrix = [] }: {
   stocksCritiques: any[]
   pertes: any[]
   nonConformes: any[]
   annulationsSuspectes: any[]
   previsions: any[]
+  haussesPrix?: any[]
 }) {
-  const [onglet, setOnglet] = useState<'toutes' | 'stocks' | 'haccp' | 'caisse' | 'pertes'>('toutes')
+  const [onglet, setOnglet] = useState<'toutes' | 'stocks' | 'haccp' | 'caisse' | 'pertes' | 'prix'>('toutes')
 
-  const totalAlertes = stocksCritiques.length + nonConformes.length + annulationsSuspectes.length
+  const totalAlertes = stocksCritiques.length + nonConformes.length + annulationsSuspectes.length + haussesPrix.length
   const totalPertes = pertes.reduce((a: number, p: any) => a + ((p.quantite || 0) * (p.prix_unitaire || 0)), 0)
 
   const ONGLETS = [
@@ -21,6 +22,7 @@ export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulatio
     { key: 'haccp', label: 'HACCP', count: nonConformes.length },
     { key: 'caisse', label: 'Caisse', count: annulationsSuspectes.length },
     { key: 'pertes', label: 'Pertes', count: pertes.length },
+    { key: 'prix', label: 'Prix', count: haussesPrix.length },
   ]
 
   return (
@@ -122,7 +124,7 @@ export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulatio
                   )}
                 </div>
                 <p className="text-xs" style={{ color: '#4a6fa5' }}>
-                  {new Date(r.releve_at).toLocaleDateString('fr-FR')}
+                  {new Date(r.created_at).toLocaleDateString('fr-FR')}
                 </p>
               </div>
             ))}
@@ -151,7 +153,7 @@ export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulatio
                 <div className="text-right">
                   <p className="text-sm font-bold" style={{ color: '#a78bfa' }}>{a.montant} €</p>
                   <p className="text-xs" style={{ color: '#4a6fa5' }}>
-                    {new Date(a.event_at).toLocaleDateString('fr-FR')}
+                    {new Date(a.created_at).toLocaleDateString('fr-FR')}
                   </p>
                 </div>
               </div>
@@ -186,6 +188,38 @@ export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulatio
                     {new Date(p.created_at).toLocaleDateString('fr-FR')}
                   </p>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* PRIX */}
+      {(onglet === 'toutes' || onglet === 'prix') && haussesPrix.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2"
+            style={{ color: '#f87171' }}>
+            <TrendingUp size={12} />Hausses de prix — {haussesPrix.length}
+          </p>
+          <div className="space-y-2">
+            {haussesPrix.map((h: any, i: number) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-3 rounded-xl"
+                style={{ background: '#1a0505', border: '1px solid #7f1d1d' }}>
+                <TrendingUp size={16} style={{ color: '#f87171' }} />
+                <div className="flex-1">
+                  <p className="text-sm font-medium" style={{ color: '#e2e8f0' }}>
+                    {h.produits?.nom ?? 'Produit'}
+                  </p>
+                  <p className="text-xs" style={{ color: '#4a6fa5' }}>
+                    {h.prix_precedent?.toFixed(2)} → {h.prix?.toFixed(2)} EUR
+                  </p>
+                </div>
+                <span className="text-sm font-bold" style={{ color: '#f87171' }}>
+                  +{h.variation_pct?.toFixed(1)}%
+                </span>
+                <p className="text-xs" style={{ color: '#4a6fa5' }}>
+                  {new Date(h.date_releve).toLocaleDateString('fr-FR')}
+                </p>
               </div>
             ))}
           </div>

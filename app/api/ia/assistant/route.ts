@@ -1,92 +1,99 @@
-// app/api/ia/analyser-bl/route.ts
-// Analyse une photo de bon de livraison avec Claude Vision
-// Extrait automatiquement : fournisseur, produits, quantités, prix
+// app/api/ia/assistant/route.ts
+// Streaming AI chat assistant for RestoFlow restaurant management
 
-import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
+import { checkAccess } from '@/lib/billing'
+import { withRateLimit } from '@/lib/api-rate-limit'
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-})
+const client = new Anthropic()
 
-export async function POST(req: NextRequest) {
+const SYSTEM_PROMPT = `Tu es l'assistant IA de RestoFlow, une application de gestion de restaurant.
+Tu es un expert en restauration, gestion des stocks, food cost, HACCP, planning d'équipe et optimisation de la rentabilité.
+
+Règles :
+- Réponds toujours en français.
+- Sois concis et actionnable : donne des conseils pratiques, pas de la théorie.
+- Utilise les données contextuelles fournies pour personnaliser tes réponses.
+- Si des chiffres sont disponibles dans le contexte, utilise-les pour appuyer tes recommandations.
+- Formate tes réponses avec du markdown simple (gras, listes à puces) pour la lisibilité.
+- Si tu ne connais pas une information, dis-le clairement au lieu d'inventer.
+- Tu peux utiliser des emojis avec modération pour structurer tes réponses.
+- Ne parle jamais de toi-même en tant qu'IA ou modèle de langage sauf si on te le demande.`
+
+export const POST = withRateLimit(async function POST(req: NextRequest) {
+  const { userId } = await auth()
+  if (!userId) {
+    return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  }
+
+  const access = await checkAccess('assistant_ia')
+  if (!access.allowed) {
+    return NextResponse.json({ error: 'Fonctionnalité réservée au plan Pro. Mettez à niveau votre abonnement.' }, { status: 403 })
+  }
+
   try {
-    const { imageBase64, mimeType } = await req.json()
+    const { messages, contexte } = await req.json()
 
-    if (!imageBase64) {
-      return NextResponse.json({ error: 'Image manquante' }, { status: 400 })
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return NextResponse.json({ error: 'Messages manquants' }, { status: 400 })
     }
 
-    const response = await client.messages.create({
+    // Build the system prompt with injected context
+    const contextBlock = contexte
+      ? `\n\nVoici les données temps réel du restaurant "${contexte.restaurant ?? 'inconnu'}" (${contexte.date ?? 'date inconnue'}) :\n${JSON.stringify(contexte, null, 2)}`
+      : ''
+
+    const systemPrompt = SYSTEM_PROMPT + contextBlock
+
+    // Filter to only valid roles and ensure alternation starts with user
+    const apiMessages = messages
+      .filter((m: { role: string; content: string }) =>
+        (m.role === 'user' || m.role === 'assistant') && m.content?.trim()
+      )
+      .map((m: { role: string; content: string }) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }))
+
+    // Stream the response using Anthropic SDK
+    const stream = await client.messages.stream({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2000,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mimeType ?? 'image/jpeg',
-                data: imageBase64,
-              },
-            },
-            {
-              type: 'text',
-              text: `Tu es un assistant spécialisé dans la lecture de bons de livraison de restaurant.
-              
-Analyse ce bon de livraison et extrait TOUTES les informations disponibles.
-Réponds UNIQUEMENT en JSON valide, sans aucun texte avant ou après.
-
-Format attendu :
-{
-  "fournisseur": {
-    "nom": "string",
-    "telephone": "string ou null",
-    "email": "string ou null"
-  },
-  "numero_bl": "string ou null",
-  "date": "string YYYY-MM-DD ou null",
-  "lignes": [
-    {
-      "designation": "string — nom exact sur le BL",
-      "nom_normalise": "string — nom simplifié (ex: 'Tomates rondes 1kg' → 'Tomates')",
-      "quantite": number,
-      "unite": "kg | L | pièce | boîte | carton | sachet | bouteille",
-      "prix_unitaire_ht": number ou null,
-      "reference": "string ou null"
-    }
-  ],
-  "total_ht": number ou null,
-  "confiance": "haute | moyenne | basse"
-}
-
-Si tu n'es pas sûr d'une valeur, mets null. Ne devine pas les prix.`,
-            },
-          ],
-        },
-      ],
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: apiMessages,
     })
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : ''
+    // Return a streaming Response with text chunks
+    const encoder = new TextEncoder()
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const event of stream) {
+            if (
+              event.type === 'content_block_delta' &&
+              event.delta.type === 'text_delta'
+            ) {
+              controller.enqueue(encoder.encode(event.delta.text))
+            }
+          }
+          controller.close()
+        } catch (err) {
+          controller.error(err)
+        }
+      },
+    })
 
-    // Nettoyer les éventuels backticks markdown
-    const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-
-    let parsed
-    try {
-      parsed = JSON.parse(cleaned)
-    } catch {
-      return NextResponse.json(
-        { error: 'Impossible de parser la réponse IA', raw: text },
-        { status: 422 }
-      )
-    }
-
-    return NextResponse.json(parsed)
+    return new Response(readableStream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Transfer-Encoding': 'chunked',
+      },
+    })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Erreur inconnue'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error('ASSISTANT ERROR:', error)
+    return NextResponse.json({ error: 'Erreur lors de la generation de la reponse' }, { status: 500 })
   }
-}
+}, { maxRequests: 10, windowMs: 60 * 1000, prefix: 'ia-assistant' })

@@ -1,8 +1,10 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 import { FournisseursClient } from '@/components/commandes/fournisseurs-client'
+import { requireRouteAccess } from '@/lib/require-route-access'
 
 export default async function FournisseursPage() {
+  await requireRouteAccess('/fournisseurs')
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
 

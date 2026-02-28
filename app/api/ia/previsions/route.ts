@@ -1,9 +1,17 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
+import { checkAccess } from '@/lib/billing'
+import { withRateLimit } from '@/lib/api-rate-limit'
 
 const client = new Anthropic()
 
-export async function POST(req: NextRequest) {
+export const POST = withRateLimit(async function POST(req: NextRequest) {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  const access = await checkAccess('previsions_ia')
+  if (!access.allowed) return NextResponse.json({ error: 'Fonctionnalité réservée au plan Pro.' }, { status: 403 })
+
   try {
     const { date, historique, meteo, estFerie, estVacances, evenementLocal, produitsStock } = await req.json()
 
@@ -40,7 +48,7 @@ Retourne UNIQUEMENT un objet JSON brut, sans markdown, sans backticks, sans text
     const data = JSON.parse(jsonMatch[0])
     return NextResponse.json({ success: true, data })
   } catch (e: any) {
-    console.error('PREVISIONS ERROR:', e.message)
-    return NextResponse.json({ error: e.message }, { status: 500 })
+    console.error('PREVISIONS ERROR:', e)
+    return NextResponse.json({ error: 'Erreur lors de la generation des previsions' }, { status: 500 })
   }
-}
+}, { maxRequests: 10, windowMs: 60 * 1000, prefix: 'ia-previsions' })

@@ -1,8 +1,10 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
 import { InventaireClient } from '@/components/inventaire/inventaire-client'
+import { requireRouteAccess } from '@/lib/require-route-access'
 
 export default async function InventairePage() {
+  await requireRouteAccess('/inventaire')
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
 

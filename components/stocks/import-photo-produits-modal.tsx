@@ -43,7 +43,7 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
     try {
       const fd = new FormData()
       fd.append('image', file)
-      const res = await fetch('/api/ia/analyser-photo-produits', { method: 'POST', body: fd })
+      const res = await fetch('/api/ia/analyser-photo-produit', { method: 'POST', body: fd })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
       setProduits((data.produits || []).map((p: any) => ({ ...p, selectionne: true })))
