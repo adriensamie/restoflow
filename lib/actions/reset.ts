@@ -9,8 +9,23 @@ export async function reinitialiserApplication() {
   const supabase = await createServerSupabaseClient()
   const id = staff.orgId
 
-  // Supprimer dans l'ordre (FK oblige)
+  // Supprimer dans l'ordre (FK oblige — enfants avant parents)
   const tables = [
+    // Nouvelles tables enfants
+    'lignes_retour',
+    'retours_fournisseur',
+    'lots_produit',
+    'prix_produit_historique',
+    'notifications',
+    'notification_preferences',
+    'push_subscriptions',
+    'role_permissions',
+    'pin_sessions',
+    'lignes_inventaire',
+    'sessions_inventaire',
+    'mouvements_cave',
+    'objectifs_kpi',
+    // Tables originales
     'haccp_releves',
     'haccp_templates',
     'fiches_paie',
@@ -26,16 +41,18 @@ export async function reinitialiserApplication() {
     'mouvements_stock',
     'commande_lignes',
     'commandes',
+    'produit_fournisseur',
     'fournisseurs',
     'vins',
     'produits',
   ]
 
   for (const table of tables) {
-    await (supabase as any)
+    const { error } = await (supabase as any)
       .from(table)
       .delete()
       .eq('organization_id', id)
+    if (error) console.error(`Reset: erreur suppression ${table}:`, error.message)
   }
 
   revalidatePath('/')
