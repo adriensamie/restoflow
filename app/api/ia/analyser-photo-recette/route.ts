@@ -31,7 +31,7 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 3000,
+      max_tokens: 8000,
       messages: [{
         role: 'user',
         content: [
@@ -79,6 +79,7 @@ Retourne UNIQUEMENT le JSON, sans texte avant ou après.`
     return NextResponse.json(data)
   } catch (e: unknown) {
     console.error('ANALYSER-PHOTO-RECETTE ERROR:', e)
-    return NextResponse.json({ error: 'Erreur lors de l\'analyse de la recette' }, { status: 500 })
+    const msg = e instanceof Error ? e.message : 'Erreur inconnue'
+    return NextResponse.json({ error: `Erreur analyse recette: ${msg}` }, { status: 500 })
   }
 }, { maxRequests: 10, windowMs: 60 * 1000, prefix: 'ia-photo-recette' })
