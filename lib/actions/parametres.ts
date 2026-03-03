@@ -20,7 +20,7 @@ export async function sauvegarderParametres(data: {
   const staff = await requireRole(['patron'])
   const supabase = await createServerSupabaseClient()
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('organizations')
     .update({
       nom: validated.nom,
@@ -35,7 +35,10 @@ export async function sauvegarderParametres(data: {
       updated_at: new Date().toISOString(),
     })
     .eq('id', staff.orgId)
+    .select('id')
+    .single()
 
   if (error) throw error
+  if (!updated) throw new Error('Mise a jour echouee — verifiez vos droits')
   revalidatePath('/parametres')
 }

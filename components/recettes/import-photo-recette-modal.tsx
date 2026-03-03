@@ -39,6 +39,10 @@ export function ImportPhotoRecetteModal({ onClose, onSuccess }: { onClose: () =>
       const fd = new FormData()
       fd.append('image', file)
       const res = await fetch('/api/ia/analyser-photo-recette', { method: 'POST', body: fd })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error || `Erreur HTTP ${res.status}`)
+      }
       const json = await res.json()
       if (json.error) throw new Error(json.error)
       setData(json)

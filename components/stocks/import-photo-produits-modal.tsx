@@ -45,6 +45,10 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
       const fd = new FormData()
       fd.append('image', file)
       const res = await fetch('/api/ia/analyser-photo-produit', { method: 'POST', body: fd })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error || `Erreur HTTP ${res.status}`)
+      }
       const data = await res.json()
       if (data.error) throw new Error(data.error)
       setProduits((data.produits || []).map((p: { nom: string; categorie: string; unite: string; prix_unitaire: number | null; stock_initial: number | null }) => ({ ...p, selectionne: true })))

@@ -35,6 +35,8 @@ export function ParametresClient({ organisation, isPatron = false, initialPermis
   const [confirmText, setConfirmText] = useState('')
   const [resetDone, setResetDone] = useState(false)
 
+  const [error, setError] = useState<string | null>(null)
+
   const [form, setForm] = useState({
     nom: organisation?.nom || '',
     adresse: organisation?.adresse || '',
@@ -50,12 +52,16 @@ export function ParametresClient({ organisation, isPatron = false, initialPermis
   const set = (key: string, val: string | number) => setForm(f => ({ ...f, [key]: val }))
 
   const handleSave = () => {
+    setError(null)
     startTransition(async () => {
       try {
         await sauvegarderParametres(form)
         setSaved(true)
         setTimeout(() => setSaved(false), 2000)
-      } catch (e) { console.error(e) }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Erreur lors de la sauvegarde'
+        setError(msg)
+      }
     })
   }
 
@@ -93,11 +99,16 @@ export function ParametresClient({ organisation, isPatron = false, initialPermis
           </div>
         </div>
         {onglet !== 'danger' && onglet !== 'roles' && (
-          <button onClick={handleSave} disabled={isPending}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
-            style={{ background: saved ? 'linear-gradient(135deg,#059669,#10b981)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', opacity: isPending ? 0.6 : 1 }}>
-            {saved ? <><Check size={14} />Sauvegardé</> : isPending ? 'Sauvegarde...' : <><Save size={14} />Sauvegarder</>}
-          </button>
+          <div className="flex items-center gap-3">
+            {error && (
+              <p className="text-sm" style={{ color: '#f87171' }}>{error}</p>
+            )}
+            <button onClick={handleSave} disabled={isPending}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
+              style={{ background: saved ? 'linear-gradient(135deg,#059669,#10b981)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', opacity: isPending ? 0.6 : 1 }}>
+              {saved ? <><Check size={14} />Sauvegardé</> : isPending ? 'Sauvegarde...' : <><Save size={14} />Sauvegarder</>}
+            </button>
+          </div>
         )}
       </div>
 
