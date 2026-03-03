@@ -33,6 +33,18 @@ export const lierProduitFournisseurSchema = z.object({
   fournisseur_principal: z.boolean().optional(),
 })
 
+export const modifierCommandeSchema = z.object({
+  commande_id: z.string().uuid(),
+  fournisseur_id: z.string().uuid(),
+  date_livraison_prevue: z.string().optional(),
+  note: z.string().max(500).optional(),
+  lignes: z.array(z.object({
+    produit_id: z.string().uuid(),
+    quantite_commandee: z.number().positive(),
+    prix_unitaire: z.number().min(0).optional(),
+  })).min(1),
+})
+
 export const receptionnerLivraisonSchema = z.object({
   commandeId: z.string().uuid(),
   lignes: z.array(z.object({

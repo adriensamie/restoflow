@@ -5,14 +5,17 @@ import { OrganizationSwitcher, UserButton } from '@clerk/nextjs'
 import { Users, Menu } from 'lucide-react'
 import { NotificationBadge } from '@/components/layout/notification-badge'
 import { NotificationPanel } from '@/components/layout/notification-panel'
+import { SiteSwitcher } from '@/components/layout/site-switcher'
 import { useSidebar } from '@/components/layout/sidebar-provider'
 
 interface Props {
   role?: string
   staffName?: string
+  childSites?: { id: string; nom: string; slug: string | null }[]
+  selectedSiteId?: string | null
 }
 
-export function Header({ role = 'patron', staffName = '' }: Props) {
+export function Header({ role = 'patron', staffName = '', childSites = [], selectedSiteId = null }: Props) {
   const [showNotifs, setShowNotifs] = useState(false)
   const { toggle } = useSidebar()
 
@@ -41,6 +44,13 @@ export function Header({ role = 'patron', staffName = '' }: Props) {
               },
             }}
           />
+          {childSites.length > 0 && (
+            <SiteSwitcher
+              sites={childSites}
+              selectedSiteId={selectedSiteId ?? null}
+              parentOrgName=""
+            />
+          )}
           {staffName && (
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: '#0d1526', border: '1px solid #1e2d4a' }}>
               <Users size={12} style={{ color: '#60a5fa' }} />

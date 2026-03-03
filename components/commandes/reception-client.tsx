@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { CheckCircle, AlertTriangle, Loader2, ArrowLeft, RotateCcw } from 'lucide-react'
+import { CheckCircle, AlertTriangle, Loader2, ArrowLeft, RotateCcw, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { receptionnerLivraison, envoyerCommande } from '@/lib/actions/commandes'
+import { useRouter } from 'next/navigation'
 import { RetourModal } from '@/components/commandes/retour-modal'
 
 interface Ligne {
@@ -27,9 +28,13 @@ interface Props {
 }
 
 export function ReceptionClient({ commande, lignes }: Props) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [quantitesRecues, setQuantitesRecues] = useState<Record<string, number>>(
     Object.fromEntries(lignes.map(l => [l.id, l.quantite_commandee]))
+  )
+  const [prixUnitaires, setPrixUnitaires] = useState<Record<string, number>>(
+    Object.fromEntries(lignes.map(l => [l.id, l.prix_unitaire ?? 0]))
   )
   const [notesEcart, setNotesEcart] = useState<Record<string, string>>({})
   const [ecarts, setEcarts] = useState<{
@@ -58,7 +63,7 @@ export function ReceptionClient({ commande, lignes }: Props) {
             produit_id: l.produit_id,
             quantite_commandee: l.quantite_commandee,
             quantite_recue: quantitesRecues[l.id] ?? l.quantite_commandee,
-            prix_unitaire: l.prix_unitaire ?? undefined,
+            prix_unitaire: prixUnitaires[l.id] ?? l.prix_unitaire ?? undefined,
             note_ecart: notesEcart[l.id] || undefined,
           }))
         )
@@ -152,10 +157,11 @@ export function ReceptionClient({ commande, lignes }: Props) {
         <div className="grid grid-cols-12 gap-2 px-4 py-3 text-xs font-semibold uppercase"
           style={{ background: '#0a1628', color: '#3b5280' }}>
           <span className="col-span-3">Produit</span>
-          <span className="col-span-2">Commandé</span>
-          <span className="col-span-3">Reçu</span>
-          <span className="col-span-2">Écart</span>
-          <span className="col-span-2">Note écart</span>
+          <span className="col-span-2">Commande</span>
+          <span className="col-span-2">Recu</span>
+          <span className="col-span-2">Prix unit.</span>
+          <span className="col-span-1">Ecart</span>
+          <span className="col-span-2">Note ecart</span>
         </div>
 
         {lignes.map((ligne, i) => {
@@ -178,7 +184,7 @@ export function ReceptionClient({ commande, lignes }: Props) {
               <div className="col-span-2 text-sm" style={{ color: '#94a3b8' }}>
                 {ligne.quantite_commandee} {ligne.produits?.unite}
               </div>
-              <div className="col-span-3">
+              <div className="col-span-2">
                 {dejaRecu ? (
                   <span className="text-sm" style={{ color: '#4a6fa5' }}>
                     {ligne.quantite_recue ?? '—'} {ligne.produits?.unite}
@@ -191,7 +197,21 @@ export function ReceptionClient({ commande, lignes }: Props) {
                     style={{ background: '#0a1120', border: `1px solid ${hasEcart ? (ecartPct < 0 ? '#7f1d1d' : '#14532d') : '#1e2d4a'}`, color: '#e2e8f0' }} />
                 )}
               </div>
-              <div className="col-span-2 text-sm font-medium" style={{ color: ecartColor }}>
+              <div className="col-span-2">
+                {dejaRecu ? (
+                  <span className="text-sm" style={{ color: '#4a6fa5' }}>
+                    {ligne.prix_unitaire != null ? `${ligne.prix_unitaire.toFixed(2)} €` : '—'}
+                  </span>
+                ) : (
+                  <input type="number" min="0" step="0.01"
+                    value={prixUnitaires[ligne.id] ?? ''}
+                    placeholder="Prix..."
+                    onChange={e => setPrixUnitaires(p => ({ ...p, [ligne.id]: parseFloat(e.target.value) || 0 }))}
+                    className="w-full px-2 py-1.5 rounded text-sm outline-none"
+                    style={{ background: '#0a1120', border: '1px solid #1e2d4a', color: '#e2e8f0' }} />
+                )}
+              </div>
+              <div className="col-span-1 text-sm font-medium" style={{ color: ecartColor }}>
                 {ecartPct === 0 ? '✓' : `${ecartPct > 0 ? '+' : ''}${ecartPct.toFixed(1)}%`}
               </div>
               <div className="col-span-2">
@@ -218,6 +238,13 @@ export function ReceptionClient({ commande, lignes }: Props) {
 
       {commande.statut === 'brouillon' && (
         <div className="flex justify-end gap-3">
+          <button
+            onClick={() => router.push(`/commandes/${commande.id}/modifier`)}
+            className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium"
+            style={{ background: '#1e2d4a', color: '#e2e8f0' }}>
+            <Pencil size={16} />
+            Modifier la commande
+          </button>
           <button onClick={() => {
             setError(null)
             startTransition(async () => {

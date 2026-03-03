@@ -9,6 +9,7 @@ import { ExpiredBanner } from '@/components/billing/expired-banner'
 import { getCurrentStaff, getAllowedRoutes } from '@/lib/rbac'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getChildSites, getSelectedSiteId } from '@/lib/actions/sites'
 import type { Plan } from '@/lib/plans'
 export const dynamic = 'force-dynamic'
 
@@ -225,6 +226,16 @@ async function AppShell({ children, clerkOrgId }: { children: React.ReactNode; c
     console.error('[layout] getAllowedRoutes failed:', e)
   }
 
+  // Fetch multi-site data for enterprise orgs
+  let childSites: { id: string; nom: string; slug: string | null }[] = []
+  let selectedSiteId: string | null = null
+  if (billing.plan === 'enterprise') {
+    try {
+      childSites = await getChildSites()
+      selectedSiteId = await getSelectedSiteId()
+    } catch {}
+  }
+
   return (
     <SidebarProvider>
       <div className="flex h-screen" style={{ background: '#080d1a' }}>
@@ -239,7 +250,12 @@ async function AppShell({ children, clerkOrgId }: { children: React.ReactNode; c
           {billing.plan === 'trial' && !billing.isTrialExpired && billing.daysLeft !== null && (
             <TrialBanner daysLeft={billing.daysLeft} />
           )}
-          <Header role={role} staffName={staff ? `${staff.prenom} ${staff.nom}`.trim() : ''} />
+          <Header
+            role={role}
+            staffName={staff ? `${staff.prenom} ${staff.nom}`.trim() : ''}
+            childSites={childSites}
+            selectedSiteId={selectedSiteId}
+          />
           <main className="flex-1 overflow-y-auto p-4 md:p-6">
             {children}
           </main>

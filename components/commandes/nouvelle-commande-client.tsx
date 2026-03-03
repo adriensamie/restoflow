@@ -6,7 +6,7 @@ import {
   ArrowLeft, Loader2, Search, Plus, Minus, ShoppingCart,
   X, Package, Save, ChevronDown,
 } from 'lucide-react'
-import { creerCommande, modifierFournisseur } from '@/lib/actions/commandes'
+import { creerCommande, modifierCommande, modifierFournisseur } from '@/lib/actions/commandes'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -41,6 +41,15 @@ interface PanierItem {
   prix_unitaire: number
 }
 
+interface CommandeExistante {
+  id: string
+  numero: string
+  fournisseur_id: string
+  date_livraison_prevue: string | null
+  note: string | null
+  lignes: { produit_id: string; produit_nom: string; unite: string; quantite_commandee: number; prix_unitaire: number | null }[]
+}
+
 interface Props {
   fournisseurs: Fournisseur[]
   blPreRempli?: {
@@ -48,6 +57,7 @@ interface Props {
     lignes: { nom_normalise: string; quantite: number; unite: string; prix_unitaire_ht: number | null }[]
     date: string | null
   } | null
+  commandeExistante?: CommandeExistante | null
 }
 
 const inputStyle = { background: '#0a1120', border: '1px solid #1e2d4a', color: '#e2e8f0' }
@@ -69,15 +79,17 @@ const CATEGORIE_LABELS: Record<string, string> = {
 
 // ─── Component ──────────────────────────────────────────────────────────────────
 
-export function NouvelleCommandeClient({ fournisseurs, blPreRempli }: Props) {
+export function NouvelleCommandeClient({ fournisseurs, blPreRempli, commandeExistante }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
 
+  const isEditMode = !!commandeExistante
+
   // ─── State ──────────────────────────────────────────────────────────────────
-  const [fournisseurId, setFournisseurId] = useState('')
-  const [dateLivraison, setDateLivraison] = useState('')
-  const [note, setNote] = useState('')
+  const [fournisseurId, setFournisseurId] = useState(commandeExistante?.fournisseur_id ?? '')
+  const [dateLivraison, setDateLivraison] = useState(commandeExistante?.date_livraison_prevue ?? '')
+  const [note, setNote] = useState(commandeExistante?.note ?? '')
   const [activeTab, setActiveTab] = useState('tous')
   const [searchQuery, setSearchQuery] = useState('')
   const [produits, setProduits] = useState<Produit[]>([])
@@ -120,6 +132,21 @@ export function NouvelleCommandeClient({ fournisseurs, blPreRempli }: Props) {
     }
     if (newPanier.size > 0) setPanier(newPanier)
   }, [blPreRempli, produits])
+
+  // Pre-fill panier from existing commande (edit mode)
+  useEffect(() => {
+    if (!commandeExistante || produits.length === 0) return
+    const newPanier = new Map<string, PanierItem>()
+    for (const ligne of commandeExistante.lignes) {
+      newPanier.set(ligne.produit_id, {
+        nom: ligne.produit_nom,
+        unite: ligne.unite,
+        quantite: ligne.quantite_commandee,
+        prix_unitaire: ligne.prix_unitaire ?? 0,
+      })
+    }
+    if (newPanier.size > 0) setPanier(newPanier)
+  }, [commandeExistante, produits])
 
   // ─── Fetch produits on fournisseur change ───────────────────────────────────
   useEffect(() => {
@@ -220,7 +247,7 @@ export function NouvelleCommandeClient({ fournisseurs, blPreRempli }: Props) {
 
   // ─── Submit commande ────────────────────────────────────────────────────────
   const handleSubmit = () => {
-    if (!fournisseurId) { setError('Sélectionnez un fournisseur'); return }
+    if (!fournisseurId) { setError('Selectionnez un fournisseur'); return }
     if (panier.size === 0) { setError('Ajoutez au moins un produit au panier'); return }
     setError('')
 
@@ -235,12 +262,22 @@ export function NouvelleCommandeClient({ fournisseurs, blPreRempli }: Props) {
           })
         })
 
-        await creerCommande({
-          fournisseur_id: fournisseurId,
-          date_livraison_prevue: dateLivraison || undefined,
-          note: note || undefined,
-          lignes,
-        })
+        if (isEditMode) {
+          await modifierCommande({
+            commande_id: commandeExistante!.id,
+            fournisseur_id: fournisseurId,
+            date_livraison_prevue: dateLivraison || undefined,
+            note: note || undefined,
+            lignes,
+          })
+        } else {
+          await creerCommande({
+            fournisseur_id: fournisseurId,
+            date_livraison_prevue: dateLivraison || undefined,
+            note: note || undefined,
+            lignes,
+          })
+        }
         router.push('/commandes')
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Erreur')
@@ -451,7 +488,7 @@ export function NouvelleCommandeClient({ fournisseurs, blPreRempli }: Props) {
               className="w-full py-2.5 rounded-lg text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
               style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}>
               {isPending && <Loader2 size={14} className="animate-spin" />}
-              Créer la commande
+              {isEditMode ? 'Modifier la commande' : 'Creer la commande'}
             </button>
           </div>
         </div>
@@ -476,7 +513,7 @@ export function NouvelleCommandeClient({ fournisseurs, blPreRempli }: Props) {
           className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50"
           style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}>
           {isPending && <Loader2 size={14} className="animate-spin" />}
-          Créer la commande
+          {isEditMode ? 'Modifier la commande' : 'Creer la commande'}
         </button>
       </div>
 
@@ -530,7 +567,7 @@ export function NouvelleCommandeClient({ fournisseurs, blPreRempli }: Props) {
                 className="w-full py-2.5 rounded-lg text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50"
                 style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}>
                 {isPending && <Loader2 size={14} className="animate-spin" />}
-                Créer la commande
+                {isEditMode ? 'Modifier la commande' : 'Creer la commande'}
               </button>
             </div>
           </div>

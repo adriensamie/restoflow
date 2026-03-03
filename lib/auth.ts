@@ -2,19 +2,54 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 
 export async function getOrgUUID(): Promise<string> {
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
-  if (!orgId) throw new Error('Non authentifié')
-  const { data, error } = await supabase
+  if (!orgId) throw new Error('Non authentifie')
+
+  // 1. Resolve parent org from Clerk org ID
+  const { data: parentOrg, error } = await supabase
     .from('organizations')
     .select('id')
     .eq('clerk_org_id', orgId)
+    .is('parent_organization_id', null)
     .returns<{ id: string }[]>()
     .single()
-  if (error || !data) throw new Error('Organisation introuvable')
-  return data.id
+
+  if (error || !parentOrg) {
+    // Fallback: try without parent filter (org might not have children)
+    const { data: anyOrg, error: anyErr } = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('clerk_org_id', orgId)
+      .returns<{ id: string }[]>()
+      .limit(1)
+      .single()
+    if (anyErr || !anyOrg) throw new Error('Organisation introuvable')
+    return anyOrg.id
+  }
+
+  // 2. Check for selected site cookie
+  const cookieStore = await cookies()
+  const selectedSiteId = cookieStore.get('selected_site_id')?.value
+
+  if (selectedSiteId) {
+    // 3. Verify the selected site is a valid child of this parent
+    const { data: childOrg } = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('id', selectedSiteId)
+      .eq('parent_organization_id', parentOrg.id)
+      .returns<{ id: string }[]>()
+      .single()
+
+    if (childOrg) return childOrg.id
+    // Invalid cookie — fall through to parent
+  }
+
+  return parentOrg.id
 }
 
 export async function getCurrentStaff(): Promise<{
@@ -26,7 +61,7 @@ export async function getCurrentStaff(): Promise<{
 }> {
   const supabase = await createServerSupabaseClient()
   const { userId, orgId, orgRole } = await auth()
-  if (!userId || !orgId) throw new Error('Non authentifié')
+  if (!userId || !orgId) throw new Error('Non authentifie')
 
   const { data: org } = await supabase
     .from('organizations')

@@ -3,7 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getOrgUUID } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
-import { creerFournisseurSchema, modifierFournisseurSchema, lierProduitFournisseurSchema, creerCommandeSchema, receptionnerLivraisonSchema } from '@/lib/validations/commandes'
+import { creerFournisseurSchema, modifierFournisseurSchema, lierProduitFournisseurSchema, creerCommandeSchema, modifierCommandeSchema, receptionnerLivraisonSchema } from '@/lib/validations/commandes'
 import { createNotification } from '@/lib/notifications'
 import { requireRole } from '@/lib/rbac'
 
@@ -116,13 +116,142 @@ export async function creerCommande(data: {
   return commande
 }
 
+export async function modifierCommande(data: {
+  commande_id: string
+  fournisseur_id: string
+  date_livraison_prevue?: string
+  note?: string
+  lignes: { produit_id: string; quantite_commandee: number; prix_unitaire?: number }[]
+}) {
+  const validated = modifierCommandeSchema.parse(data)
+  await requireRole(['patron', 'manager'])
+  const supabase = await createServerSupabaseClient()
+  const organization_id = await getOrgUUID()
+
+  // Verify commande belongs to org and is still a brouillon
+  const { data: commande, error: cmdErr } = await supabase
+    .from('commandes')
+    .select('id, statut')
+    .eq('id', validated.commande_id)
+    .eq('organization_id', organization_id)
+    .single()
+
+  if (cmdErr || !commande) throw new Error('Commande introuvable')
+  if (commande.statut !== 'brouillon') throw new Error('Seul un brouillon peut etre modifie')
+
+  // Delete existing lines
+  const { error: delErr } = await supabase
+    .from('commande_lignes')
+    .delete()
+    .eq('commande_id', validated.commande_id)
+  if (delErr) throw new Error(delErr.message)
+
+  // Recalculate total
+  const totalHt = validated.lignes.reduce(
+    (acc, l) => acc + l.quantite_commandee * (l.prix_unitaire ?? 0), 0
+  )
+
+  // Update commande header
+  const { error: updErr } = await supabase
+    .from('commandes')
+    .update({
+      fournisseur_id: validated.fournisseur_id,
+      date_livraison_prevue: validated.date_livraison_prevue,
+      note: validated.note,
+      total_ht: totalHt,
+    })
+    .eq('id', validated.commande_id)
+    .eq('organization_id', organization_id)
+  if (updErr) throw new Error(updErr.message)
+
+  // Insert new lines
+  const lignes = validated.lignes.map(l => ({
+    commande_id: validated.commande_id,
+    produit_id: l.produit_id,
+    quantite_commandee: l.quantite_commandee,
+    prix_unitaire: l.prix_unitaire,
+  }))
+
+  const { error: lignesError } = await supabase
+    .from('commande_lignes').insert(lignes)
+  if (lignesError) throw new Error(lignesError.message)
+
+  revalidatePath('/commandes')
+}
+
 export async function envoyerCommande(id: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()
   const organization_id = await getOrgUUID()
+
   const { error } = await supabase
     .from('commandes').update({ statut: 'envoyee' }).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
+
+  // Try to send email if fournisseur has contact_email
+  try {
+    const { data: commande } = await supabase
+      .from('commandes')
+      .select('*, fournisseurs(nom, contact_email, adresse)')
+      .eq('id', id)
+      .single()
+
+    if (commande?.fournisseurs?.contact_email) {
+      const { data: lignes } = await supabase
+        .from('commande_lignes')
+        .select('*, produits(nom, unite)')
+        .eq('commande_id', id)
+
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('nom, adresse')
+        .eq('id', organization_id)
+        .single()
+
+      if (lignes && org) {
+        const { generateBonCommandePDF } = await import('@/lib/pdf/bon-commande')
+        const pdfBytes = generateBonCommandePDF({
+          numero: commande.numero,
+          date: new Date().toLocaleDateString('fr-FR'),
+          date_livraison_prevue: commande.date_livraison_prevue
+            ? new Date(commande.date_livraison_prevue).toLocaleDateString('fr-FR')
+            : null,
+          fournisseur: {
+            nom: commande.fournisseurs.nom,
+            adresse: commande.fournisseurs.adresse,
+            contact_email: commande.fournisseurs.contact_email,
+          },
+          organisation: { nom: org.nom, adresse: org.adresse },
+          lignes: lignes.map(l => ({
+            produit_nom: l.produits?.nom ?? 'Produit',
+            unite: l.produits?.unite ?? '',
+            quantite: l.quantite_commandee,
+            prix_unitaire: l.prix_unitaire ?? 0,
+          })),
+          total_ht: commande.total_ht ?? 0,
+          note: commande.note,
+        })
+
+        // Send via Resend (lazy import)
+        const { Resend } = await import('resend')
+        const resend = new Resend(process.env.RESEND_API_KEY)
+        await resend.emails.send({
+          from: 'RestoFlow <commandes@restoflow.app>',
+          to: commande.fournisseurs.contact_email,
+          subject: `Bon de commande ${commande.numero} — ${org.nom}`,
+          text: `Veuillez trouver ci-joint le bon de commande ${commande.numero}.\n\nCordialement,\n${org.nom}`,
+          attachments: [{
+            filename: `${commande.numero}.pdf`,
+            content: Buffer.from(pdfBytes).toString('base64'),
+          }],
+        })
+      }
+    }
+  } catch (emailErr) {
+    // Email failure should not block the status update
+    console.error('[envoyerCommande] Email error:', emailErr)
+  }
+
   revalidatePath('/commandes')
 }
 
