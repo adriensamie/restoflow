@@ -36,22 +36,40 @@ async function fetchRolePermissions(orgId: string) {
 }
 
 export default async function ParametresPage() {
-  await requireRouteAccess('/parametres')
-  const { supabase, orgId } = await getPageContext()
+  try {
+    await requireRouteAccess('/parametres')
+    const { supabase, orgId } = await getPageContext()
 
-  const [{ data: org }, staff, permissions] = await Promise.all([
-    supabase.from('organizations').select('*').eq('id', orgId).single(),
-    getCurrentStaff(),
-    fetchRolePermissions(orgId),
-  ])
+    const [{ data: org }, staff, permissions] = await Promise.all([
+      supabase.from('organizations').select('*').eq('id', orgId).single(),
+      getCurrentStaff(),
+      fetchRolePermissions(orgId),
+    ])
 
-  const isPatron = staff?.role === 'patron'
+    const isPatron = staff?.role === 'patron'
 
-  return (
-    <ParametresClient
-      organisation={org}
-      isPatron={isPatron}
-      initialPermissions={permissions}
-    />
-  )
+    return (
+      <ParametresClient
+        organisation={org}
+        isPatron={isPatron}
+        initialPermissions={permissions}
+      />
+    )
+  } catch (e: unknown) {
+    // Rethrow Next.js redirects (they use error throwing internally)
+    if (e && typeof e === 'object' && 'digest' in e) {
+      const digest = (e as { digest: string }).digest
+      if (digest.startsWith('NEXT_REDIRECT')) throw e
+    }
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[PARAMETRES PAGE ERROR]', msg, e)
+    return (
+      <div style={{ padding: '2rem', color: '#f87171', background: '#0d1526', borderRadius: '1rem', border: '1px solid #7f1d1d' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#e2e8f0' }}>
+          Erreur chargement Paramètres
+        </h2>
+        <pre style={{ fontSize: '0.875rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg}</pre>
+      </div>
+    )
+  }
 }
