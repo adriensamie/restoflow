@@ -23,15 +23,15 @@ interface Produit {
 interface Fournisseur {
   id: string
   nom: string
-  contact_nom: string | null
-  contact_email: string | null
-  contact_telephone: string | null
-  adresse: string | null
-  delai_livraison: number | null
-  conditions_paiement: string | null
-  score_fiabilite: number | null
-  nb_livraisons: number
-  nb_ecarts: number
+  contact_nom?: string | null
+  contact_email?: string | null
+  contact_telephone?: string | null
+  adresse?: string | null
+  delai_livraison?: number | null
+  conditions_paiement?: string | null
+  score_fiabilite?: number | null
+  nb_livraisons?: number
+  nb_ecarts?: number
 }
 
 interface PanierItem {

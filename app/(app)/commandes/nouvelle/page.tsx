@@ -13,7 +13,7 @@ export default async function NouvelleCommandePage({ searchParams }: Props) {
 
   const { data: fournisseurs } = await supabase
     .from('fournisseurs')
-    .select('id, nom, contact_nom, contact_email, contact_telephone, adresse, delai_livraison, conditions_paiement, score_fiabilite, nb_livraisons, nb_ecarts')
+    .select('*')
     .eq('actif', true)
     .eq('organization_id', orgId)
     .order('nom')
