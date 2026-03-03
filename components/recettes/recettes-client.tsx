@@ -23,7 +23,7 @@ interface Recette {
   prix_vente_ttc: number | null; cout_matiere: number | null
   food_cost_pct: number | null; marge_pct: number | null; coefficient: number | null
   pourcentage_ficelles: number | null; nb_portions: number | null; allergenes: string[] | null
-  recette_ingredients: any[]
+  recette_ingredients: { id: string; quantite: number; unite: string; cout_unitaire: number | null; cout_total?: number | null; produits?: { nom: string } | null; vins?: { nom: string } | null; nom?: string }[]
 }
 
 interface Produit { id: string; nom: string; categorie: string; unite: string; prix_unitaire: number | null }
@@ -38,7 +38,7 @@ export function RecettesClient({ recettes, produits, vins }: {
   const [editRecette, setEditRecette] = useState<Recette | null>(null)
   const [filtreType, setFiltreType] = useState('tous')
   const [recherche, setRecherche] = useState('')
-  const [fichePreRemplie, setFichePreRemplie] = useState<any>(null)
+  const [fichePreRemplie, setFichePreRemplie] = useState<{ nom?: string; type?: string; allergenes?: string[] } | undefined>(undefined)
   const router = useRouter()
 
   const recettesFiltrees = recettes.filter(r => {
@@ -64,7 +64,7 @@ export function RecettesClient({ recettes, produits, vins }: {
     return '#f87171'
   }
 
-  const handleFicheResultat = (data: any) => {
+  const handleFicheResultat = (data: { nom: string; type: string; description?: string; nb_portions: number; prix_vente_ttc?: number; ingredients: { nom: string; quantite: number; unite: string; notes?: string }[]; allergenes?: string[]; confiance: string }) => {
     setFichePreRemplie(data)
     setShowModal(true)
   }
@@ -215,7 +215,7 @@ export function RecettesClient({ recettes, produits, vins }: {
           produits={produits}
           vins={vins}
           preRempli={fichePreRemplie}
-          onClose={() => { setShowModal(false); setEditRecette(null); setFichePreRemplie(null) }}
+          onClose={() => { setShowModal(false); setEditRecette(null); setFichePreRemplie(undefined) }}
         />
       )}
       {showFiche && (

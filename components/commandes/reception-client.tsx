@@ -32,7 +32,10 @@ export function ReceptionClient({ commande, lignes }: Props) {
     Object.fromEntries(lignes.map(l => [l.id, l.quantite_commandee]))
   )
   const [notesEcart, setNotesEcart] = useState<Record<string, string>>({})
-  const [ecarts, setEcarts] = useState<any[]>([])
+  const [ecarts, setEcarts] = useState<{
+    ligne_id: string; produit_id: string; quantite_commandee: number
+    quantite_recue: number; prix_unitaire?: number; note_ecart?: string
+  }[]>([])
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showRetourModal, setShowRetourModal] = useState(false)

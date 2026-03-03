@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { Package, AlertTriangle, Trash2, Loader2 } from 'lucide-react'
+import { useTransition, useMemo } from 'react'
+import { Package, Trash2, Loader2 } from 'lucide-react'
 import { majStatutLot } from '@/lib/actions/lots'
 
 interface Lot {
@@ -16,10 +16,12 @@ interface Lot {
 
 export function LotsPanel({ lots }: { lots: Lot[] }) {
   const [isPending, startTransition] = useTransition()
+  // eslint-disable-next-line react-hooks/purity
+  const now = useMemo(() => Date.now(), [])
 
   const getDlcStatus = (dlc: string | null) => {
     if (!dlc) return { color: '#4a6fa5', label: 'Pas de DLC' }
-    const days = Math.ceil((new Date(dlc).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    const days = Math.ceil((new Date(dlc).getTime() - now) / (1000 * 60 * 60 * 24))
     if (days < 0) return { color: '#f87171', label: `Expire il y a ${-days}j` }
     if (days <= 3) return { color: '#f87171', label: `Expire dans ${days}j` }
     if (days <= 7) return { color: '#fbbf24', label: `DLC dans ${days}j` }

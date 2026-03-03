@@ -101,7 +101,7 @@ export async function recalculerCouts(recetteId: string) {
     .from('organizations').select('taux_tva').eq('id', organization_id).single()
   const tauxTva = org?.taux_tva ?? 10
 
-  const coutIngredients = (ingredients || []).reduce((acc: number, i: any) =>
+  const coutIngredients = (ingredients || []).reduce((acc: number, i) =>
     acc + (i.quantite * (i.cout_unitaire || 0)), 0)
 
   const ficelles = recette.pourcentage_ficelles || 3

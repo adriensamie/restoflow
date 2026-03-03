@@ -1,8 +1,8 @@
 'use client'
 
-import { Suspense, useState, useTransition } from 'react'
+import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ClipboardList, ArrowLeft, Check, Loader2 } from 'lucide-react'
+import { ClipboardList, ArrowLeft, Check } from 'lucide-react'
 import Link from 'next/link'
 
 export default function KioskHaccpPage() {
@@ -12,8 +12,7 @@ export default function KioskHaccpPage() {
 function KioskHaccpContent() {
   const searchParams = useSearchParams()
   const orgId = searchParams.get('org') ?? ''
-  const [isPending, startTransition] = useTransition()
-  const [done, setDone] = useState(false)
+  const [done] = useState(false)
 
   return (
     <div className="min-h-screen p-6 space-y-6" style={{ background: '#080d1a' }}>

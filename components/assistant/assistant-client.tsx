@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Bot, Send, Sparkles, User, StopCircle, Trash2, ChevronDown } from 'lucide-react'
+import { Bot, Send, User, StopCircle, Trash2 } from 'lucide-react'
 
 interface Message {
   id: string
@@ -15,8 +15,20 @@ interface Suggestion {
   prompt: string
 }
 
+interface RestaurantContexte {
+  restaurant: string | undefined
+  date: string
+  stocks: { alertes: string[] | undefined; totalProduits: number | undefined }
+  pertes: { totalMois: string | undefined; nb: number | undefined }
+  financier: { moisDernier: string; ca: number; foodCost: number | null; margeNette: number | null; couverts: number | null } | null
+  recettesProblematiques: string[] | undefined
+  equipe: { nb: number | undefined; postes: (string | null)[] }
+  previsions: { date: string; couverts: number; caPrevu: number | null; caReel: number | null }[] | undefined
+  haccp: { nonConformes: number | undefined; derniers: (string | null)[] | undefined }
+}
+
 export function AssistantClient({ contexte, suggestions }: {
-  contexte: any, suggestions: Suggestion[]
+  contexte: RestaurantContexte, suggestions: Suggestion[]
 }) {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -88,8 +100,8 @@ export function AssistantClient({ contexte, suggestions }: {
           m.id === assistantMsg.id ? { ...m, content: fullText } : m
         ))
       }
-    } catch (e: any) {
-      if (e.name !== 'AbortError') {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name !== 'AbortError') {
         setMessages(prev => prev.map(m =>
           m.id === assistantMsg.id
             ? { ...m, content: 'Désolé, une erreur est survenue. Réessayez.' }

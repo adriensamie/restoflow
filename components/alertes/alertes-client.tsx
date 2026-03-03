@@ -3,18 +3,49 @@
 import { useState } from 'react'
 import { Bell, AlertTriangle, Package, Thermometer, ShieldAlert, TrendingDown, TrendingUp, CheckCircle } from 'lucide-react'
 
-export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulationsSuspectes, previsions, haussesPrix = [] }: {
-  stocksCritiques: any[]
-  pertes: any[]
-  nonConformes: any[]
-  annulationsSuspectes: any[]
-  previsions: any[]
-  haussesPrix?: any[]
+interface StockCritique {
+  produit_id: string; nom: string; categorie: string
+  quantite_actuelle: number; seuil_alerte: number; unite: string
+}
+
+interface Perte {
+  quantite: number; prix_unitaire: number | null
+  motif: string | null; created_at: string
+  produits?: { nom: string } | null
+}
+
+interface NonConforme {
+  nom_controle: string; action_corrective: string | null; created_at: string
+}
+
+interface AnnulationSuspecte {
+  employe_nom: string | null; motif: string | null
+  montant: number; created_at: string
+}
+
+interface Prevision {
+  date_prevision: string; couverts_midi: number | null; couverts_soir: number | null
+  ca_prevu: number | null; ca_reel: number | null
+}
+
+interface HaussePrix {
+  produits?: { nom: string } | null
+  prix_precedent: number | null; prix: number | null
+  variation_pct: number | null; date_releve: string
+}
+
+export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulationsSuspectes, haussesPrix = [] }: {
+  stocksCritiques: StockCritique[]
+  pertes: Perte[]
+  nonConformes: NonConforme[]
+  annulationsSuspectes: AnnulationSuspecte[]
+  previsions: Prevision[]
+  haussesPrix?: HaussePrix[]
 }) {
   const [onglet, setOnglet] = useState<'toutes' | 'stocks' | 'haccp' | 'caisse' | 'pertes' | 'prix'>('toutes')
 
   const totalAlertes = stocksCritiques.length + nonConformes.length + annulationsSuspectes.length + haussesPrix.length
-  const totalPertes = pertes.reduce((a: number, p: any) => a + ((p.quantite || 0) * (p.prix_unitaire || 0)), 0)
+  const totalPertes = pertes.reduce((a: number, p) => a + ((p.quantite || 0) * (p.prix_unitaire || 0)), 0)
 
   const ONGLETS = [
     { key: 'toutes', label: 'Toutes', count: totalAlertes },
@@ -67,7 +98,7 @@ export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulatio
       {/* Onglets */}
       <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#0a1120', width: 'fit-content' }}>
         {ONGLETS.map(o => (
-          <button key={o.key} onClick={() => setOnglet(o.key as any)}
+          <button key={o.key} onClick={() => setOnglet(o.key as typeof onglet)}
             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
             style={{ background: onglet === o.key ? '#1e2d4a' : 'transparent', color: onglet === o.key ? '#f87171' : '#4a6fa5' }}>
             {o.label}
@@ -87,7 +118,7 @@ export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulatio
             <Package size={12} />Stocks critiques — {stocksCritiques.length} produit{stocksCritiques.length > 1 ? 's' : ''}
           </p>
           <div className="space-y-2">
-            {stocksCritiques.map((p: any) => (
+            {stocksCritiques.map(p => (
               <div key={p.produit_id} className="flex items-center gap-4 px-4 py-3 rounded-xl"
                 style={{ background: '#1a0505', border: '1px solid #7f1d1d' }}>
                 <AlertTriangle size={16} style={{ color: '#f87171' }} />
@@ -113,7 +144,7 @@ export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulatio
             <Thermometer size={12} />Non-conformités HACCP — {nonConformes.length}
           </p>
           <div className="space-y-2">
-            {nonConformes.map((r: any, i: number) => (
+            {nonConformes.map((r, i) => (
               <div key={i} className="flex items-center gap-4 px-4 py-3 rounded-xl"
                 style={{ background: '#1a1505', border: '1px solid #78350f' }}>
                 <AlertTriangle size={16} style={{ color: '#fbbf24' }} />
@@ -140,7 +171,7 @@ export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulatio
             <ShieldAlert size={12} />Annulations suspectes — {annulationsSuspectes.length}
           </p>
           <div className="space-y-2">
-            {annulationsSuspectes.map((a: any, i: number) => (
+            {annulationsSuspectes.map((a, i) => (
               <div key={i} className="flex items-center gap-4 px-4 py-3 rounded-xl"
                 style={{ background: '#0f051a', border: '1px solid #4c1d95' }}>
                 <ShieldAlert size={16} style={{ color: '#a78bfa' }} />
@@ -170,13 +201,13 @@ export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulatio
             <TrendingDown size={12} />Pertes 30 derniers jours — {Math.round(totalPertes)} €
           </p>
           <div className="space-y-2">
-            {pertes.map((p: any, i: number) => (
+            {pertes.map((p, i) => (
               <div key={i} className="flex items-center gap-4 px-4 py-3 rounded-xl"
                 style={{ background: '#1a0a00', border: '1px solid #7c2d12' }}>
                 <TrendingDown size={16} style={{ color: '#f97316' }} />
                 <div className="flex-1">
                   <p className="text-sm font-medium" style={{ color: '#e2e8f0' }}>
-                    {(p.produits as any)?.nom || 'Produit inconnu'}
+                    {p.produits?.nom || 'Produit inconnu'}
                   </p>
                   <p className="text-xs" style={{ color: '#4a6fa5' }}>{p.motif || 'Sans motif'}</p>
                 </div>
@@ -202,7 +233,7 @@ export function AlertesClient({ stocksCritiques, pertes, nonConformes, annulatio
             <TrendingUp size={12} />Hausses de prix — {haussesPrix.length}
           </p>
           <div className="space-y-2">
-            {haussesPrix.map((h: any, i: number) => (
+            {haussesPrix.map((h, i) => (
               <div key={i} className="flex items-center gap-4 px-4 py-3 rounded-xl"
                 style={{ background: '#1a0505', border: '1px solid #7f1d1d' }}>
                 <TrendingUp size={16} style={{ color: '#f87171' }} />

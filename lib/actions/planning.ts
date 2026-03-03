@@ -132,7 +132,7 @@ export async function dupliquerSemaine(dateDebut: string, dateFin: string, offse
 
   if (!creneaux?.length) throw new Error('Aucun créneau à dupliquer')
 
-  const nouveaux = creneaux.map((c: any) => {
+  const nouveaux = creneaux.map(c => {
     const d = new Date(c.date)
     d.setDate(d.getDate() + validated.offsetJours)
     return { ...c, organization_id, date: d.toISOString().slice(0, 10), statut: 'planifie' }

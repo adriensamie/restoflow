@@ -30,6 +30,7 @@ export function MultiSitesClient() {
   const [comparaison, setComparaison] = useState<ComparaisonSite[]>([])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     if (tab === 'dashboard') {
       getConsolidatedKPIs(mois).then(data => {

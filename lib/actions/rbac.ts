@@ -34,7 +34,7 @@ export async function getAllRolePermissions() {
 
   const result: Record<string, { allowed_routes: string[]; allowed_actions: string[] }> = {}
   for (const role of ['manager', 'employe', 'livreur']) {
-    const existing = data?.find((d: any) => d.role === role)
+    const existing = data?.find(d => d.role === role)
     result[role] = {
       allowed_routes: existing?.allowed_routes ?? DEFAULT_ROLE_ROUTES[role] ?? [],
       allowed_actions: existing?.allowed_actions ?? DEFAULT_ROLE_ACTIONS[role] ?? [],

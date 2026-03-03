@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { FileText, Plus, Check, Euro, Clock, Sparkles, X, ChevronDown } from 'lucide-react'
+import { Plus, Sparkles, X } from 'lucide-react'
 import { creerFichePaie, validerFichePaie, marquerPaye, genererFichesDepuisPlanning } from '@/lib/actions/equipe'
 
 const STATUT_CONFIG = {
@@ -93,8 +93,8 @@ export function FichesPaieClient({ fiches: init, employes, moisCourant }: {
     try {
       const nb = await genererFichesDepuisPlanning(moisFiltre + '-01')
       setMsgGeneration(`✓ ${nb} fiche${nb > 1 ? 's' : ''} générée${nb > 1 ? 's' : ''} depuis le planning`)
-    } catch (e: any) {
-      setMsgGeneration('Erreur : ' + e.message)
+    } catch (e: unknown) {
+      setMsgGeneration('Erreur : ' + (e instanceof Error ? e.message : 'Erreur inconnue'))
     } finally {
       setLoading(false)
     }
@@ -168,7 +168,7 @@ export function FichesPaieClient({ fiches: init, employes, moisCourant }: {
           <tbody>
             {fichesFiltrees.length === 0 && (
               <tr><td colSpan={9} className="px-4 py-10 text-center text-sm" style={{ color: '#2d4a7a' }}>
-                Aucune fiche pour ce mois — utilisez "Générer depuis planning"
+                Aucune fiche pour ce mois — utilisez &quot;Générer depuis planning&quot;
               </td></tr>
             )}
             {fichesFiltrees.map((f, i) => {

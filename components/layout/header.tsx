@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { OrganizationSwitcher, UserButton } from '@clerk/nextjs'
-import { Bell, Users } from 'lucide-react'
+import { Users } from 'lucide-react'
 import { NotificationBadge } from '@/components/layout/notification-badge'
 import { NotificationPanel } from '@/components/layout/notification-panel'
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { TrendingUp, TrendingDown, Target, AlertTriangle, Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { TrendingUp, AlertTriangle, Plus } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { sauvegarderObjectifs, sauvegarderSnapshot } from '@/lib/actions/marges'
 
@@ -53,10 +53,6 @@ export function MargesClient({ snapshots, objectifs, recettes }: {
   }))
 
   // Stats globales recettes
-  const recettesAvecFC = recettes.filter(r => r.food_cost_pct !== null)
-  const fcMoyen = recettesAvecFC.length > 0
-    ? Math.round(recettesAvecFC.reduce((a, r) => a + (r.food_cost_pct || 0), 0) / recettesAvecFC.length * 10) / 10
-    : null
   const recettesAlertes = recettes.filter(r => r.food_cost_pct && r.food_cost_pct > 35)
 
   // Formulaire saisie mensuelle
@@ -147,17 +143,18 @@ export function MargesClient({ snapshots, objectifs, recettes }: {
       {/* KPIs dernier mois */}
       {dernierSnapshot && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
+          {([
             {
               label: 'CA ce mois', value: `${dernierSnapshot.ca_total?.toLocaleString('fr-FR')} €`,
               sub: objectifActuel?.ca_cible ? `Objectif : ${objectifActuel.ca_cible.toLocaleString('fr-FR')} €` : null,
               color: '#60a5fa',
+              alerte: false,
             },
             {
               label: 'Food cost réel', value: dernierSnapshot.food_cost_reel ? `${dernierSnapshot.food_cost_reel}%` : '—',
               sub: `Cible : ${cibleFC}%`,
               color: fcColor(dernierSnapshot.food_cost_reel, cibleFC),
-              alerte: dernierSnapshot.food_cost_reel && dernierSnapshot.food_cost_reel > cibleFC,
+              alerte: !!(dernierSnapshot.food_cost_reel && dernierSnapshot.food_cost_reel > cibleFC),
             },
             {
               label: 'Marge nette', value: dernierSnapshot.marge_nette ? `${dernierSnapshot.marge_nette}%` : '—',
@@ -165,16 +162,18 @@ export function MargesClient({ snapshots, objectifs, recettes }: {
               color: dernierSnapshot.marge_nette
                 ? dernierSnapshot.marge_nette >= (objectifActuel?.marge_nette_cible ?? 15) ? '#4ade80' : '#f87171'
                 : '#4a6fa5',
+              alerte: false,
             },
             {
               label: 'Ticket moyen', value: dernierSnapshot.ticket_moyen ? `${dernierSnapshot.ticket_moyen} €` : '—',
               sub: dernierSnapshot.nb_couverts ? `${dernierSnapshot.nb_couverts} couverts` : null,
               color: '#a5b4fc',
+              alerte: false,
             },
-          ].map(k => (
+          ] as const).map(k => (
             <div key={k.label} className="rounded-xl p-4 relative overflow-hidden"
-              style={{ background: '#0d1526', border: `1px solid ${(k as any).alerte ? '#dc2626' : '#1e2d4a'}` }}>
-              {(k as any).alerte && (
+              style={{ background: '#0d1526', border: `1px solid ${k.alerte ? '#dc2626' : '#1e2d4a'}` }}>
+              {k.alerte && (
                 <div className="absolute top-2 right-2">
                   <AlertTriangle size={14} style={{ color: '#f87171' }} />
                 </div>
@@ -194,7 +193,7 @@ export function MargesClient({ snapshots, objectifs, recettes }: {
           { key: 'recettes', label: `Recettes (${recettes.length})` },
           { key: 'objectifs', label: 'Objectifs' },
         ].map(o => (
-          <button key={o.key} onClick={() => setOnglet(o.key as any)}
+          <button key={o.key} onClick={() => setOnglet(o.key as typeof onglet)}
             className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
             style={{
               background: onglet === o.key ? '#1e2d4a' : 'transparent',
@@ -213,7 +212,7 @@ export function MargesClient({ snapshots, objectifs, recettes }: {
               <TrendingUp size={40} className="mx-auto mb-3 opacity-20" style={{ color: '#60a5fa' }} />
               <p className="text-sm mb-1" style={{ color: '#4a6fa5' }}>Aucune donnée mensuelle</p>
               <p className="text-xs" style={{ color: '#2d4a7a' }}>
-                Utilisez "Saisie mensuelle" pour ajouter vos données
+                Utilisez &quot;Saisie mensuelle&quot; pour ajouter vos données
               </p>
             </div>
           ) : (
@@ -226,7 +225,7 @@ export function MargesClient({ snapshots, objectifs, recettes }: {
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e2d4a" />
                     <XAxis dataKey="mois" tick={{ fill: '#4a6fa5', fontSize: 11 }} />
                     <YAxis tick={{ fill: '#4a6fa5', fontSize: 11 }} unit="%" domain={[0, 50]} />
-                    <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => [`${v}%`]} />
+                    <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`${v}%`]} />
                     <ReferenceLine y={cibleFC} stroke="#fbbf24" strokeDasharray="4 4"
                       label={{ value: `Cible ${cibleFC}%`, fill: '#fbbf24', fontSize: 11 }} />
                     <Line type="monotone" dataKey="foodCost" stroke="#60a5fa" strokeWidth={2}
@@ -243,7 +242,7 @@ export function MargesClient({ snapshots, objectifs, recettes }: {
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e2d4a" />
                     <XAxis dataKey="mois" tick={{ fill: '#4a6fa5', fontSize: 11 }} />
                     <YAxis tick={{ fill: '#4a6fa5', fontSize: 11 }} unit="%" />
-                    <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => [`${v}%`]} />
+                    <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`${v}%`]} />
                     <ReferenceLine y={objectifActuel?.marge_nette_cible ?? 15}
                       stroke="#4ade80" strokeDasharray="4 4" />
                     <Line type="monotone" dataKey="marge" stroke="#4ade80" strokeWidth={2}

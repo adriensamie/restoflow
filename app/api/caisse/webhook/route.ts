@@ -13,19 +13,69 @@ function getSupabase() {
   )
 }
 
-function normaliserEvent(source: string, payload: any) {
+interface CaissePayload {
+  type?: string
+  event?: string
+  amount?: number
+  total?: number
+  total_price?: number
+  discount_amount?: number
+  montant?: number
+  payment_method?: string
+  payment_type?: string
+  mode_paiement?: string
+  cashier_name?: string
+  employee?: string
+  employee_name?: string
+  employe_nom?: string
+  covers?: number
+  guests_count?: number
+  nb_couverts?: number
+  reason?: string
+  comment?: string
+  cancellation_reason?: string
+  motif?: string
+  items?: unknown[] | null
+  articles?: unknown[] | null
+  id?: string
+  ticket_id?: string
+  order_id?: string
+  terminal_id?: string
+  pos_id?: string
+  device_id?: string
+  created_at?: string
+  timestamp?: string
+  date?: string
+  event_at?: string
+  event_type?: string
+}
+
+interface NormalisedEvent {
+  event_type: string
+  montant: number
+  mode_paiement: string | null
+  employe_nom: string | null
+  nb_couverts: number | null
+  motif: string | null
+  articles: unknown[] | null
+  source_id: string | null
+  terminal_id: string | null
+  event_at: string
+}
+
+function normaliserEvent(source: string, payload: CaissePayload): NormalisedEvent {
   switch (source) {
     case '6xpos':
       return {
         event_type: mapType6xpos(payload.type),
         montant: payload.amount || payload.total || 0,
         mode_paiement: mapPaiement(payload.payment_method),
-        employe_nom: payload.cashier_name || payload.employee,
-        nb_couverts: payload.covers,
-        motif: payload.reason || payload.comment,
+        employe_nom: payload.cashier_name || payload.employee || null,
+        nb_couverts: payload.covers ?? null,
+        motif: payload.reason || payload.comment || null,
         articles: payload.items || null,
-        source_id: payload.id || payload.ticket_id,
-        terminal_id: payload.terminal_id || payload.pos_id,
+        source_id: payload.id || payload.ticket_id || null,
+        terminal_id: payload.terminal_id || payload.pos_id || null,
         event_at: payload.created_at || payload.timestamp || new Date().toISOString(),
       }
     case 'zelty':
@@ -33,31 +83,31 @@ function normaliserEvent(source: string, payload: any) {
         event_type: mapTypeZelty(payload.event),
         montant: payload.total_price || payload.discount_amount || 0,
         mode_paiement: mapPaiement(payload.payment_type),
-        employe_nom: payload.employee_name,
-        nb_couverts: payload.guests_count,
-        motif: payload.cancellation_reason,
+        employe_nom: payload.employee_name || null,
+        nb_couverts: payload.guests_count ?? null,
+        motif: payload.cancellation_reason || null,
         articles: payload.items || null,
-        source_id: payload.order_id,
-        terminal_id: payload.device_id,
+        source_id: payload.order_id || null,
+        terminal_id: payload.device_id || null,
         event_at: payload.date || new Date().toISOString(),
       }
     default:
       return {
         event_type: payload.event_type || 'paiement',
         montant: payload.montant || payload.amount || 0,
-        mode_paiement: payload.mode_paiement,
-        employe_nom: payload.employe_nom || payload.employee,
-        nb_couverts: payload.nb_couverts,
-        motif: payload.motif,
+        mode_paiement: payload.mode_paiement ?? null,
+        employe_nom: payload.employe_nom || payload.employee || null,
+        nb_couverts: payload.nb_couverts ?? null,
+        motif: payload.motif || null,
         articles: payload.articles || null,
-        source_id: payload.id,
-        terminal_id: payload.terminal_id,
+        source_id: payload.id || null,
+        terminal_id: payload.terminal_id || null,
         event_at: payload.event_at || new Date().toISOString(),
       }
   }
 }
 
-function mapType6xpos(type: string): string {
+function mapType6xpos(type: string | undefined): string {
   const map: Record<string, string> = {
     'ORDER_CREATED': 'ouverture_ticket',
     'ORDER_CANCELLED': 'annulation_ticket',
@@ -67,10 +117,10 @@ function mapType6xpos(type: string): string {
     'VOID': 'correction',
     'COMPLIMENTARY': 'offert',
   }
-  return map[type] || 'paiement'
+  return (type && map[type]) || 'paiement'
 }
 
-function mapTypeZelty(event: string): string {
+function mapTypeZelty(event: string | undefined): string {
   const map: Record<string, string> = {
     'order.created': 'ouverture_ticket',
     'order.cancelled': 'annulation_ticket',
@@ -79,10 +129,10 @@ function mapTypeZelty(event: string): string {
     'order.void': 'correction',
     'order.complimentary': 'offert',
   }
-  return map[event] || 'paiement'
+  return (event && map[event]) || 'paiement'
 }
 
-function mapPaiement(type: string): string | null {
+function mapPaiement(type: string | undefined): string | null {
   if (!type) return null
   const t = type.toLowerCase()
   if (t.includes('cash') || t.includes('espece')) return 'especes'
@@ -143,11 +193,11 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
       .eq('organization_id', orgId)
 
     // Check for suspicious cancellations and create notification
-    const cancellations = toInsert.filter((e: any) =>
+    const cancellations = toInsert.filter(e =>
       e.event_type === 'annulation_ticket' || e.event_type === 'correction'
     )
     if (cancellations.length > 0) {
-      const totalMontant = cancellations.reduce((a: number, e: any) => a + (e.montant || 0), 0)
+      const totalMontant = cancellations.reduce((a: number, e) => a + (e.montant || 0), 0)
       const seuil = config?.seuil_alerte_annulation ?? 50
       if (totalMontant >= seuil) {
         try {
@@ -164,7 +214,7 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, inserted: toInsert.length })
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('Webhook caisse error:', e)
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }

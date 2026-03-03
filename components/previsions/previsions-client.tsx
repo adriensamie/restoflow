@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Sparkles, Calendar, TrendingUp, Users, AlertTriangle, Sun, Cloud, CloudRain, Snowflake, X, ChevronRight } from 'lucide-react'
+import { Sparkles, AlertTriangle, Sun, Cloud, CloudRain, Snowflake, X, ChevronRight } from 'lucide-react'
 import { sauvegarderPrevision } from '@/lib/actions/previsions'
 
 const METEO_CONFIG = {
@@ -28,13 +28,23 @@ interface Prevision {
 
 interface Produit { produit_id: string; nom: string; categorie: string; quantite_actuelle: number; seuil_alerte: number; unite: string }
 
+interface HistoriqueCA {
+  mois: string; ca_total: number; nb_couverts: number | null
+}
+
 export function PrevisionsClient({ previsions, historiqueCA, produits }: {
-  previsions: Prevision[], historiqueCA: any[], produits: Produit[]
+  previsions: Prevision[], historiqueCA: HistoriqueCA[], produits: Produit[]
 }) {
   const [loading, setLoading] = useState(false)
   const [showGenerateur, setShowGenerateur] = useState(false)
-  const [resultatIA, setResultatIA] = useState<any>(null)
-  const [previsionSelectee, setPrevisionSelectee] = useState<Prevision | null>(null)
+  const [resultatIA, setResultatIA] = useState<{
+    couverts_midi: number; couverts_soir: number; ca_prevu: number
+    confiance: string; analyse: string
+    produits_prioritaires: { nom: string; raison: string; urgence: string }[]
+    alertes: string[]
+  } | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_previsionSelectee, setPrevisionSelectee] = useState<Prevision | null>(null)
   const [form, setForm] = useState({
     date: new Date(Date.now() + 86400000).toISOString().slice(0, 10), // demain
     meteo: 'ensoleille',
@@ -43,7 +53,7 @@ export function PrevisionsClient({ previsions, historiqueCA, produits }: {
     estVacances: false,
     evenementLocal: '',
   })
-  const setF = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
+  const setF = (k: string, v: string | boolean) => setForm(f => ({ ...f, [k]: v }))
 
   const produitsAlerte = produits.filter(p => p.quantite_actuelle <= p.seuil_alerte)
 
@@ -85,7 +95,7 @@ export function PrevisionsClient({ previsions, historiqueCA, produits }: {
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
       setResultatIA(json.data)
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e)
     } finally {
       setLoading(false)
@@ -175,7 +185,7 @@ export function PrevisionsClient({ previsions, historiqueCA, produits }: {
           <Sparkles size={40} className="mx-auto mb-3 opacity-20" style={{ color: '#a5b4fc' }} />
           <p className="text-sm mb-1" style={{ color: '#4a6fa5' }}>Aucune prévision générée</p>
           <p className="text-xs" style={{ color: '#2d4a7a' }}>
-            Cliquez sur "Générer une prévision" pour commencer
+            Cliquez sur &quot;Générer une prévision&quot; pour commencer
           </p>
         </div>
       ) : (
@@ -312,21 +322,21 @@ export function PrevisionsClient({ previsions, historiqueCA, produits }: {
 
               {/* Contexte */}
               <div className="flex gap-4">
-                {[
-                  { key: 'estFerie', label: 'Jour férié' },
-                  { key: 'estVacances', label: 'Vacances scolaires' },
-                ].map(item => (
+                {([
+                  { key: 'estFerie' as const, label: 'Jour férié' },
+                  { key: 'estVacances' as const, label: 'Vacances scolaires' },
+                ]).map(item => (
                   <button key={item.key}
-                    onClick={() => setF(item.key, !(form as any)[item.key])}
+                    onClick={() => setF(item.key, !form[item.key])}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all"
                     style={{
-                      background: (form as any)[item.key] ? '#0a1f3d' : '#0a1120',
-                      border: `1px solid ${(form as any)[item.key] ? '#3b82f6' : '#1e2d4a'}`,
-                      color: (form as any)[item.key] ? '#60a5fa' : '#4a6fa5',
+                      background: form[item.key] ? '#0a1f3d' : '#0a1120',
+                      border: `1px solid ${form[item.key] ? '#3b82f6' : '#1e2d4a'}`,
+                      color: form[item.key] ? '#60a5fa' : '#4a6fa5',
                     }}>
                     <div className="w-4 h-4 rounded flex items-center justify-center"
-                      style={{ background: (form as any)[item.key] ? '#3b82f6' : '#1e2d4a' }}>
-                      {(form as any)[item.key] && <span className="text-white text-xs">✓</span>}
+                      style={{ background: form[item.key] ? '#3b82f6' : '#1e2d4a' }}>
+                      {form[item.key] && <span className="text-white text-xs">✓</span>}
                     </div>
                     {item.label}
                   </button>
@@ -386,7 +396,7 @@ export function PrevisionsClient({ previsions, historiqueCA, produits }: {
                         Produits à commander en priorité :
                       </p>
                       <div className="space-y-1.5">
-                        {resultatIA.produits_prioritaires.map((p: any, i: number) => (
+                        {resultatIA.produits_prioritaires.map((p, i) => (
                           <div key={i} className="flex items-center justify-between px-3 py-1.5 rounded-lg"
                             style={{ background: '#0d1526' }}>
                             <span className="text-xs font-medium" style={{ color: '#e2e8f0' }}>{p.nom}</span>

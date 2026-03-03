@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
-import { X, Check, CheckCheck, Bell, Package, AlertTriangle, Thermometer, TrendingUp, Shield } from 'lucide-react'
+import { X, CheckCheck, Bell, Package, AlertTriangle, Thermometer, TrendingUp, Shield, type LucideIcon } from 'lucide-react'
 import { getNotifications, markAsRead, markAllAsRead } from '@/lib/actions/notifications'
 
-const TYPE_ICONS: Record<string, any> = {
+const TYPE_ICONS: Record<string, { icon: LucideIcon; color: string }> = {
   stock_critique: { icon: Package, color: '#f87171' },
   ecart_livraison: { icon: AlertTriangle, color: '#fbbf24' },
   haccp_non_conforme: { icon: Thermometer, color: '#f97316' },
@@ -15,7 +15,10 @@ const TYPE_ICONS: Record<string, any> = {
 }
 
 export function NotificationPanel({ onClose }: { onClose: () => void }) {
-  const [notifications, setNotifications] = useState<any[]>([])
+  const [notifications, setNotifications] = useState<{
+    id: string; type: string; titre: string; message: string
+    lue: boolean; created_at: string
+  }[]>([])
   const [isPending, startTransition] = useTransition()
 
   useEffect(() => {

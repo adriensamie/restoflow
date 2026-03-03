@@ -2,12 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, ShoppingCart, Clock, CheckCircle, XCircle, Truck, ScanLine } from 'lucide-react'
+import { Plus, ShoppingCart, Clock, CheckCircle, XCircle, Truck, ScanLine, type LucideIcon } from 'lucide-react'
 import { NouvelleCommandeModal } from './nouvelle-commande-modal'
 import { AnalyserBLModal } from './analyser-bl-modal'
 
 
-const STATUT_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
+const STATUT_CONFIG: Record<string, { label: string; color: string; bg: string; icon: LucideIcon }> = {
   brouillon:        { label: 'Brouillon',         color: '#94a3b8', bg: '#1e2d4a', icon: Clock },
   envoyee:          { label: 'Envoyée',            color: '#60a5fa', bg: '#0a1f3d', icon: Truck },
   confirmee:        { label: 'Confirmée',          color: '#4ade80', bg: '#0a2d1a', icon: CheckCircle },
@@ -39,7 +39,11 @@ export function CommandesClient({ commandes, fournisseurs }: {
   const router = useRouter()
   const [showModal, setShowModal] = useState(false)
   const [showBLModal, setShowBLModal] = useState(false)
-  const [blPreRempli, setBlPreRempli] = useState<any>(null)
+  const [blPreRempli, setBlPreRempli] = useState<{
+    fournisseur: { nom: string }
+    lignes: { nom_normalise: string; quantite: number; unite: string; prix_unitaire_ht: number | null }[]
+    date: string | null
+  } | null>(null)
   const [filtreStatut, setFiltreStatut] = useState('tous')
 
   const commandesFiltrees = commandes.filter(c =>

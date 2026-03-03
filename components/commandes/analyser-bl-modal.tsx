@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { X, Upload, Camera, Loader2, CheckCircle, AlertTriangle, Sparkles } from 'lucide-react'
+import { X, Upload, CheckCircle, AlertTriangle, Sparkles } from 'lucide-react'
 
 interface LigneBL {
   designation: string
@@ -212,7 +212,7 @@ export function AnalyserBLModal({ onResultat, onClose }: Props) {
               </div>
 
               <p className="text-xs" style={{ color: '#2d4a7a' }}>
-                Vérifiez les données avant d'importer. Vous pourrez modifier chaque ligne dans la commande.
+                Vérifiez les données avant d&apos;importer. Vous pourrez modifier chaque ligne dans la commande.
               </p>
 
               <div className="flex gap-3">

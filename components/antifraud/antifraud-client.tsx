@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Shield, AlertTriangle, TrendingDown, Users, Clock, Settings, Plus, X, CheckCircle } from 'lucide-react'
+import { Shield, AlertTriangle, TrendingDown, Users, Settings, Plus, X } from 'lucide-react'
 import { sauvegarderConfigCaisse, ajouterEventManuel } from '@/lib/actions/antifraud'
 
 const EVENT_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -32,9 +32,18 @@ interface Event {
   created_at: string
 }
 
-export function AntifraudClient({ events, config }: { events: Event[], config: any }) {
+interface ConfigCaisse {
+  source: string
+  api_key: string | null
+  webhook_secret: string | null
+  api_endpoint: string | null
+  seuil_alerte_annulation: number | null
+  alertes_actives: boolean
+  statut_connexion?: string
+}
+
+export function AntifraudClient({ events, config }: { events: Event[], config: ConfigCaisse | null }) {
   const [onglet, setOnglet] = useState<'journal' | 'stats' | 'config'>('journal')
-  const [periode, setPeriode] = useState<'jour' | 'semaine' | 'mois'>('mois')
   const [showManuel, setShowManuel] = useState(false)
   const [showConfig, setShowConfig] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -81,7 +90,7 @@ export function AntifraudClient({ events, config }: { events: Event[], config: a
     seuil_alerte_annulation: config?.seuil_alerte_annulation?.toString() ?? '50',
     alertes_actives: config?.alertes_actives ?? true,
   })
-  const setC = (k: string, v: any) => setFormConfig(f => ({ ...f, [k]: v }))
+  const setC = (k: string, v: string | boolean) => setFormConfig(f => ({ ...f, [k]: v }))
 
   const handleSaveConfig = async () => {
     setLoading(true)
@@ -182,17 +191,17 @@ export function AntifraudClient({ events, config }: { events: Event[], config: a
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'CA total', value: `${caTotalPaiements.toLocaleString('fr-FR')} €`, color: '#4ade80', icon: TrendingDown },
+        {([
+          { label: 'CA total', value: `${caTotalPaiements.toLocaleString('fr-FR')} €`, color: '#4ade80', icon: TrendingDown, sub: undefined },
           { label: 'Annulations', value: `${montantAnnulations.toFixed(2)} €`, sub: `${annulations.length} opération${annulations.length > 1 ? 's' : ''}`, color: '#f87171', icon: AlertTriangle },
           { label: 'Remises', value: `${montantRemises.toFixed(2)} €`, sub: `${remises.length} opération${remises.length > 1 ? 's' : ''}`, color: '#fbbf24', icon: TrendingDown },
-          { label: 'Pct. annulations', value: caTotalPaiements > 0 ? `${((montantAnnulations / caTotalPaiements) * 100).toFixed(1)}%` : '—', color: montantAnnulations / caTotalPaiements > 0.05 ? '#f87171' : '#4ade80', icon: Shield },
-        ].map(k => (
+          { label: 'Pct. annulations', value: caTotalPaiements > 0 ? `${((montantAnnulations / caTotalPaiements) * 100).toFixed(1)}%` : '—', color: montantAnnulations / caTotalPaiements > 0.05 ? '#f87171' : '#4ade80', icon: Shield, sub: undefined },
+        ] as const).map(k => (
           <div key={k.label} className="rounded-xl p-4"
             style={{ background: '#0d1526', border: '1px solid #1e2d4a' }}>
             <p className="text-xs mb-1" style={{ color: '#4a6fa5' }}>{k.label}</p>
             <p className="text-xl font-bold" style={{ color: k.color }}>{k.value}</p>
-            {(k as any).sub && <p className="text-xs mt-0.5" style={{ color: '#2d4a7a' }}>{(k as any).sub}</p>}
+            {k.sub && <p className="text-xs mt-0.5" style={{ color: '#2d4a7a' }}>{k.sub}</p>}
           </div>
         ))}
       </div>
@@ -203,7 +212,7 @@ export function AntifraudClient({ events, config }: { events: Event[], config: a
           { key: 'journal', label: 'Journal temps réel' },
           { key: 'stats', label: 'Stats par employé' },
         ].map(o => (
-          <button key={o.key} onClick={() => setOnglet(o.key as any)}
+          <button key={o.key} onClick={() => setOnglet(o.key as typeof onglet)}
             className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
             style={{
               background: onglet === o.key ? '#1e2d4a' : 'transparent',
@@ -438,7 +447,7 @@ export function AntifraudClient({ events, config }: { events: Event[], config: a
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs block mb-1" style={{ color: '#4a6fa5' }}>Type d'événement</label>
+                  <label className="text-xs block mb-1" style={{ color: '#4a6fa5' }}>Type d&apos;événement</label>
                   <select value={formManuel.event_type} onChange={e => setM('event_type', e.target.value)} style={inputStyle}>
                     {Object.entries(EVENT_CONFIG).map(([k, v]) => (
                       <option key={k} value={k}>{v.label}</option>

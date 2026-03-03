@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Wine, AlertTriangle, TrendingUp, Package, Filter } from 'lucide-react'
+import { Plus, Wine, AlertTriangle, TrendingUp, Package } from 'lucide-react'
 import { VinModal } from './vin-modal'
 import { MouvementCaveModal } from './mouvement-cave-modal'
 

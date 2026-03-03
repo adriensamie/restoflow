@@ -106,8 +106,7 @@ async function fetchOrgBilling(clerkOrgId: string): Promise<OrgBilling | null> {
 /** Admin fallback: read/create org bypassing RLS */
 async function fetchOrgBillingAdmin(clerkOrgId: string): Promise<OrgBilling | null> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const adminSupabase = createAdminClient() as any
+    const adminSupabase = createAdminClient()
 
     let { data } = await adminSupabase
       .from('organizations')

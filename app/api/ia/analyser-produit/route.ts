@@ -48,7 +48,7 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
     if (!jsonMatch) throw new Error('Pas de JSON dans la réponse')
     const data = JSON.parse(jsonMatch[0])
     return NextResponse.json({ success: true, data })
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('ANALYSER-PRODUIT ERROR:', e)
     return NextResponse.json({ error: 'Erreur lors de l\'analyse du produit' }, { status: 500 })
   }

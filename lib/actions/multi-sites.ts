@@ -9,7 +9,7 @@ export async function getChildOrganizations() {
   await requireAccess('multi_sites')
   await requireRole(['patron'])
   const orgId = await getOrgUUID()
-  const supabase = await createServerSupabaseClient() as any
+  const supabase = await createServerSupabaseClient()
 
   const { data, error } = await supabase
     .from('organizations')
@@ -24,7 +24,7 @@ export async function linkChildOrganization(childClerkOrgId: string) {
   await requireAccess('multi_sites')
   await requireRole(['patron'])
   const parentOrgId = await getOrgUUID()
-  const supabase = await createServerSupabaseClient() as any
+  const supabase = await createServerSupabaseClient()
 
   const { data: child, error: findError } = await supabase
     .from('organizations')
@@ -58,7 +58,7 @@ export async function getConsolidatedKPIs(mois: string): Promise<{
   await requireAccess('multi_sites')
   await requireRole(['patron'])
   const orgId = await getOrgUUID()
-  const supabase = await createServerSupabaseClient() as any
+  const supabase = await createServerSupabaseClient()
 
   // Get child orgs
   const { data: children } = await supabase
@@ -91,8 +91,8 @@ export async function getConsolidatedKPIs(mois: string): Promise<{
       .gte('date_prevision', debut)
       .lte('date_prevision', fin)
 
-    const ca_total = (prevs || []).reduce((s: number, p: any) => s + (p.ca_reel || 0), 0)
-    const nb_couverts = (prevs || []).reduce((s: number, p: any) =>
+    const ca_total = (prevs || []).reduce((s: number, p) => s + (p.ca_reel || 0), 0)
+    const nb_couverts = (prevs || []).reduce((s: number, p) =>
       s + (p.couverts_reel_midi || 0) + (p.couverts_reel_soir || 0), 0)
 
     // Food cost from recettes (approximate via marges)

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
-import { ShoppingCart, Loader2, Package, ArrowRight } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ShoppingCart, Loader2, Package } from 'lucide-react'
 import { getSuggestionsReappro, type SuggestionReappro } from '@/lib/actions/reorder'
 
 export function SuggestionReappro() {

@@ -27,7 +27,7 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
     if (error) throw new Error(error.message)
 
     return NextResponse.json({ success: true })
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('PUSH SUBSCRIBE ERROR:', e)
     return NextResponse.json({ error: 'Erreur lors de l\'inscription aux notifications' }, { status: 500 })
   }

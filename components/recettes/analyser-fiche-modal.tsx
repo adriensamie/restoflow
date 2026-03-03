@@ -1,10 +1,19 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Image from 'next/image'
 import { X, Sparkles, Upload, CheckCircle, AlertTriangle } from 'lucide-react'
 
+interface FicheResultat {
+  nom: string; type: string; description?: string; nb_portions: number
+  prix_vente_ttc?: number
+  ingredients: { nom: string; quantite: number; unite: string; notes?: string }[]
+  allergenes?: string[]
+  confiance: string
+}
+
 interface Props {
-  onResultat: (data: any) => void
+  onResultat: (data: FicheResultat) => void
   onClose: () => void
 }
 
@@ -12,7 +21,7 @@ export function AnalyserFicheModal({ onResultat, onClose }: Props) {
   const [loading, setLoading] = useState(false)
   const [preview, setPreview] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [resultat, setResultat] = useState<any>(null)
+  const [resultat, setResultat] = useState<FicheResultat | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const handleFile = (file: File) => {
@@ -36,8 +45,8 @@ export function AnalyserFicheModal({ onResultat, onClose }: Props) {
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
       setResultat(json.data)
-    } catch (e: any) {
-      setError(e.message)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Erreur inconnue')
     } finally {
       setLoading(false)
     }
@@ -75,7 +84,7 @@ export function AnalyserFicheModal({ onResultat, onClose }: Props) {
                 className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all"
                 style={{ borderColor: preview ? '#3b82f6' : '#1e2d4a', background: '#0a1120' }}>
                 {preview ? (
-                  <img src={preview} alt="aperçu" className="max-h-48 mx-auto rounded-lg object-contain" />
+                  <Image src={preview} alt="aperçu" className="max-h-48 mx-auto rounded-lg object-contain" width={400} height={192} unoptimized />
                 ) : (
                   <>
                     <Upload size={32} className="mx-auto mb-2 opacity-30" style={{ color: '#60a5fa' }} />
@@ -136,7 +145,7 @@ export function AnalyserFicheModal({ onResultat, onClose }: Props) {
                     Ingrédients détectés ({resultat.ingredients?.length ?? 0}) :
                   </p>
                   <div className="space-y-1 max-h-32 overflow-y-auto">
-                    {resultat.ingredients?.map((i: any, idx: number) => (
+                    {resultat.ingredients?.map((i, idx) => (
                       <div key={idx} className="flex justify-between text-xs px-2 py-1 rounded"
                         style={{ background: '#0d1526' }}>
                         <span style={{ color: '#e2e8f0' }}>{i.nom}</span>
@@ -145,7 +154,7 @@ export function AnalyserFicheModal({ onResultat, onClose }: Props) {
                     ))}
                   </div>
                 </div>
-                {resultat.allergenes?.length > 0 && (
+                {resultat.allergenes && (resultat.allergenes?.length ?? 0) > 0 && (
                   <div>
                     <p className="text-xs mb-1" style={{ color: '#4a6fa5' }}>Allergènes :</p>
                     <div className="flex flex-wrap gap-1">

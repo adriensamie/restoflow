@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { BarChart3, Download, Loader2, TrendingUp, Users, ClipboardList, Package } from 'lucide-react'
+import { BarChart3, Download, Loader2, TrendingUp, Users, Package } from 'lucide-react'
 import { getBilanJournee, type BilanJournee } from '@/lib/actions/bilan'
 
 export function BilanClient() {

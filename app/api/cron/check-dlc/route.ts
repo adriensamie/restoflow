@@ -46,7 +46,11 @@ export async function GET(req: NextRequest) {
         organization_id: orgId,
         type: 'dlc_proche',
         titre: `${orgLots.length} lot(s) proche(s) d'expiration`,
-        message: orgLots.map((l: any) => `${(l.produits as any)?.nom ?? 'Produit'} — DLC ${l.dlc}`).join(', '),
+        message: orgLots.map(l => {
+          const p = l.produits as unknown as { nom: string } | { nom: string }[] | null
+          const nom = Array.isArray(p) ? p[0]?.nom : p?.nom
+          return `${nom ?? 'Produit'} — DLC ${l.dlc}`
+        }).join(', '),
         lue: false,
         canal: ['in_app', 'web_push'],
       })
@@ -62,7 +66,7 @@ export async function GET(req: NextRequest) {
       .lt('dlc', today)
 
     return NextResponse.json({ notifications: count })
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('CRON check-dlc error:', e)
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }

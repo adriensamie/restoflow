@@ -10,7 +10,25 @@ const STATUT_CONFIG: Record<string, { label: string; color: string; bg: string }
   recue_partielle:  { label: 'Reçue partielle',   color: '#fbbf24', bg: '#1a1505' },
 }
 
-export function LivraisonsClient({ commandes }: { commandes: any[] }) {
+interface CommandeLigne {
+  id: string
+  produit_id: string
+  quantite_commandee: number
+  prix_unitaire: number | null
+  produits?: { nom: string; unite: string } | null
+}
+
+interface CommandeLivraison {
+  id: string
+  numero: string
+  statut: string
+  total_ht: number | null
+  date_livraison_prevue: string | null
+  fournisseurs?: { nom: string } | null
+  commande_lignes: CommandeLigne[]
+}
+
+export function LivraisonsClient({ commandes }: { commandes: CommandeLivraison[] }) {
   const [isPending, startTransition] = useTransition()
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [quantites, setQuantites] = useState<Record<string, number>>({})
@@ -21,14 +39,14 @@ export function LivraisonsClient({ commandes }: { commandes: any[] }) {
   const setQ = (ligneId: string, val: number) => setQuantites(q => ({ ...q, [ligneId]: val }))
   const setN = (ligneId: string, val: string) => setNotes(n => ({ ...n, [ligneId]: val }))
 
-  const handleReceptionner = (commande: any) => {
+  const handleReceptionner = (commande: CommandeLivraison) => {
     const lignes = commande.commande_lignes || []
     setError(null)
     startTransition(async () => {
       try {
         await receptionnerLivraison(
           commande.id,
-          lignes.map((l: any) => ({
+          lignes.map(l => ({
             ligne_id: l.id,
             produit_id: l.produit_id,
             quantite_commandee: l.quantite_commandee,
@@ -125,7 +143,7 @@ export function LivraisonsClient({ commandes }: { commandes: any[] }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {lignes.map((l: any, i: number) => {
+                        {lignes.map((l, i) => {
                           const qteRecue = quantites[l.id] ?? l.quantite_commandee
                           const ecart = qteRecue - l.quantite_commandee
                           return (

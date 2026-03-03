@@ -32,12 +32,12 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
         contact_email: email,
       },
       organisation: { nom: 'RestoFlow', adresse: null },
-      lignes: (retour.lignes_retour ?? []).map((l: any) => ({
-        produit_nom: l.produits?.nom ?? 'Produit',
-        unite: l.produits?.unite ?? '',
+      lignes: (retour.lignes_retour ?? []).map((l) => ({
+        produit_nom: (l.produits as unknown as { nom: string; unite: string } | null)?.nom ?? 'Produit',
+        unite: (l.produits as unknown as { nom: string; unite: string } | null)?.unite ?? '',
         quantite: l.quantite_retournee,
         prix_unitaire: l.prix_unitaire ?? 0,
-        motif: l.motif,
+        motif: l.motif ?? undefined,
       })),
       total_ht: retour.total_ht ?? 0,
     })
@@ -61,7 +61,7 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
     })
 
     return NextResponse.json({ success: true })
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('RETOUR EMAIL ERROR:', e)
     return NextResponse.json({ error: 'Erreur lors de l\'envoi de l\'email' }, { status: 500 })
   }

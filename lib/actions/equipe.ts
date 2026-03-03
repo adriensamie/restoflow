@@ -105,7 +105,7 @@ export async function genererFichesDepuisPlanning(mois: string) {
 
   // Regrouper par employé en calculant les heures depuis heure_debut/heure_fin
   const parEmploye: Record<string, { heures: number; cout: number }> = {}
-  creneaux.forEach((c: any) => {
+  creneaux.forEach(c => {
     if (!parEmploye[c.employe_id]) parEmploye[c.employe_id] = { heures: 0, cout: 0 }
     const [hd, md] = (c.heure_debut || '0:0').split(':').map(Number)
     const [hf, mf] = (c.heure_fin || '0:0').split(':').map(Number)

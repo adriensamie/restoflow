@@ -22,20 +22,29 @@ export async function POST(req: Request) {
 
   const payload = await req.text()
 
-  let event: any
+  let event: {
+    type: string
+    data: {
+      id?: string
+      name?: string
+      slug?: string | null
+      role?: string
+      organization?: { id?: string }
+      public_user_data?: { first_name?: string; last_name?: string; user_id?: string; identifier?: string }
+    }
+  }
   try {
     const wh = new Webhook(WEBHOOK_SECRET)
     event = wh.verify(payload, {
       'svix-id': svix_id,
       'svix-timestamp': svix_timestamp,
       'svix-signature': svix_signature,
-    })
+    }) as typeof event
   } catch {
     return NextResponse.json({ error: 'Signature invalide' }, { status: 400 })
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createAdminClient() as any
+  const supabase = createAdminClient()
   const eventType: string = event.type
   const data = event.data
 
@@ -46,13 +55,13 @@ export async function POST(req: Request) {
 
       // Create Stripe customer
       const customer = await stripe.customers.create({
-        name: data.name,
-        metadata: { clerk_org_id: data.id },
+        name: data.name ?? 'Organisation',
+        metadata: { clerk_org_id: data.id ?? '' },
       })
 
       await supabase.from('organizations').insert({
-        clerk_org_id: data.id,
-        nom: data.name,
+        clerk_org_id: data.id ?? '',
+        nom: data.name ?? 'Organisation',
         slug: data.slug ?? null,
         plan: 'trial',
         trial_ends_at: trialEndsAt.toISOString(),
@@ -63,15 +72,15 @@ export async function POST(req: Request) {
     if (eventType === 'organization.updated') {
       await supabase
         .from('organizations')
-        .update({ nom: data.name, slug: data.slug ?? null })
-        .eq('clerk_org_id', data.id)
+        .update({ nom: data.name ?? 'Organisation', slug: data.slug ?? null })
+        .eq('clerk_org_id', data.id ?? '')
     }
 
     if (eventType === 'organizationMembership.created') {
       const { data: org } = await supabase
         .from('organizations')
         .select('id')
-        .eq('clerk_org_id', data.organization?.id)
+        .eq('clerk_org_id', data.organization?.id ?? '')
         .single()
 
       if (org) {
@@ -80,8 +89,8 @@ export async function POST(req: Request) {
         const initiales = ((firstName?.[0] || '') + (lastName?.[0] || '')).toUpperCase() || 'XX'
         await supabase.from('staff').upsert({
           organization_id: org.id,
-          clerk_user_id: data.public_user_data?.user_id,
-          clerk_org_role: data.role,
+          clerk_user_id: data.public_user_data?.user_id ?? null,
+          clerk_org_role: data.role ?? null,
           nom: lastName || 'Sans nom',
           prenom: firstName || 'Sans prénom',
           initiales,
@@ -96,14 +105,14 @@ export async function POST(req: Request) {
       const { data: org } = await supabase
         .from('organizations')
         .select('id')
-        .eq('clerk_org_id', data.organization?.id)
+        .eq('clerk_org_id', data.organization?.id ?? '')
         .single()
 
       if (org) {
         await supabase
           .from('staff')
           .update({ actif: false })
-          .eq('clerk_user_id', data.public_user_data?.user_id)
+          .eq('clerk_user_id', data.public_user_data?.user_id ?? '')
           .eq('organization_id', org.id)
       }
     }

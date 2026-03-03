@@ -1,7 +1,6 @@
 import { cache } from 'react'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import type { Staff } from '@/types/database'
 
 // Default routes accessible by each role (fallback when no custom config exists)
 export const DEFAULT_ROLE_ROUTES: Record<string, string[]> = {

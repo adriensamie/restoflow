@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { AlertTriangle, Clock } from 'lucide-react'
 
 interface LotExpiration {
@@ -10,6 +11,8 @@ interface LotExpiration {
 }
 
 export function DlcAlertes({ lots }: { lots: LotExpiration[] }) {
+  // eslint-disable-next-line react-hooks/purity
+  const now = useMemo(() => Date.now(), [])
   if (lots.length === 0) return null
 
   return (
@@ -19,7 +22,7 @@ export function DlcAlertes({ lots }: { lots: LotExpiration[] }) {
         <Clock size={12} /> DLC/DLUO proches — {lots.length} lot{lots.length > 1 ? 's' : ''}
       </h4>
       {lots.map(lot => {
-        const days = Math.ceil((new Date(lot.dlc).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        const days = Math.ceil((new Date(lot.dlc).getTime() - now) / (1000 * 60 * 60 * 24))
         const isExpired = days < 0
         return (
           <div key={lot.id} className="flex items-center gap-3 px-3 py-2 rounded-lg"

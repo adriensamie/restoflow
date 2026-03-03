@@ -47,7 +47,7 @@ Retourne UNIQUEMENT un objet JSON brut, sans markdown, sans backticks, sans text
     
     const data = JSON.parse(jsonMatch[0])
     return NextResponse.json({ success: true, data })
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('PREVISIONS ERROR:', e)
     return NextResponse.json({ error: 'Erreur lors de la generation des previsions' }, { status: 500 })
   }

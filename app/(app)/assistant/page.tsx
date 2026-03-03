@@ -36,11 +36,11 @@ export default async function AssistantPage() {
     restaurant: org?.nom,
     date: aujourd.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
     stocks: {
-      alertes: stocks?.filter((s: any) => s.quantite_actuelle <= s.seuil_alerte).map((s: any) => `${s.nom}: ${s.quantite_actuelle}${s.unite}`),
+      alertes: stocks?.filter(s => s.quantite_actuelle <= s.seuil_alerte).map(s => `${s.nom}: ${s.quantite_actuelle}${s.unite}`),
       totalProduits: stocks?.length,
     },
     pertes: {
-      totalMois: pertes?.reduce((a: number, p: any) => a + (p.quantite * (p.prix_unitaire || 0)), 0)?.toFixed(2),
+      totalMois: pertes?.reduce((a: number, p) => a + (p.quantite * (p.prix_unitaire || 0)), 0)?.toFixed(2),
       nb: pertes?.length,
     },
     financier: snapshots?.[0] ? {
@@ -50,12 +50,12 @@ export default async function AssistantPage() {
       margeNette: snapshots[0].marge_nette,
       couverts: snapshots[0].nb_couverts,
     } : null,
-    recettesProblematiques: recettes?.filter((r: any) => r.food_cost_pct > 35).map((r: any) => `${r.nom}: ${r.food_cost_pct}% food cost`),
+    recettesProblematiques: recettes?.filter(r => r.food_cost_pct && r.food_cost_pct > 35).map(r => `${r.nom}: ${r.food_cost_pct}% food cost`),
     equipe: {
       nb: employes?.length,
-      postes: [...new Set(employes?.map((e: any) => e.poste))],
+      postes: [...new Set(employes?.map(e => e.poste))],
     },
-    previsions: previsions?.slice(0, 3).map((p: any) => ({
+    previsions: previsions?.slice(0, 3).map(p => ({
       date: p.date_prevision,
       couverts: (p.couverts_midi || 0) + (p.couverts_soir || 0),
       caPrevu: p.ca_prevu,
@@ -63,7 +63,7 @@ export default async function AssistantPage() {
     })),
     haccp: {
       nonConformes: nonConformes?.length,
-      derniers: nonConformes?.slice(0, 3).map((r: any) => r.nom_controle),
+      derniers: nonConformes?.slice(0, 3).map(r => r.nom_controle),
     },
   }
 

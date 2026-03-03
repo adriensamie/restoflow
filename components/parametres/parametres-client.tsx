@@ -12,7 +12,14 @@ const ONGLETS = [
   { key: 'danger', label: 'Zone danger', icon: Trash2 },
 ]
 
-export function ParametresClient({ organisation }: { organisation: any }) {
+interface Organisation {
+  nom: string | null; adresse: string | null; telephone: string | null
+  email_contact: string | null; siret: string | null
+  timezone: string | null; devise: string | null
+  taux_tva: number | null; taux_charges_salariales: number | null
+}
+
+export function ParametresClient({ organisation }: { organisation: Organisation | null }) {
   const [onglet, setOnglet] = useState('general')
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
@@ -32,7 +39,7 @@ export function ParametresClient({ organisation }: { organisation: any }) {
     taux_charges_salariales: organisation?.taux_charges_salariales ?? 22,
   })
 
-  const set = (key: string, val: any) => setForm(f => ({ ...f, [key]: val }))
+  const set = (key: string, val: string | number) => setForm(f => ({ ...f, [key]: val }))
 
   const handleSave = () => {
     startTransition(async () => {
@@ -216,7 +223,7 @@ export function ParametresClient({ organisation }: { organisation: any }) {
               ) : (
                 <div className="p-5 rounded-xl space-y-4" style={{ background: '#1a0505', border: '1px solid #7f1d1d' }}>
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: '#f87171' }}>Réinitialiser l'application</p>
+                    <p className="text-sm font-semibold" style={{ color: '#f87171' }}>Réinitialiser l&apos;application</p>
                     <p className="text-xs mt-1 leading-relaxed" style={{ color: '#9a3b3b' }}>
                       Cette action supprime définitivement toutes vos données : produits, stocks, recettes, fournisseurs, commandes, planning, fiches de paie, HACCP, prévisions et historique caisse. <strong style={{ color: '#f87171' }}>Cette action est irréversible.</strong>
                     </p>
@@ -237,7 +244,7 @@ export function ParametresClient({ organisation }: { organisation: any }) {
                     <button onClick={() => setConfirmReset(true)}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
                       style={{ background: '#450a0a', color: '#f87171', border: '1px solid #7f1d1d' }}>
-                      <Trash2 size={14} />Réinitialiser l'application
+                      <Trash2 size={14} />Réinitialiser l&apos;application
                     </button>
                   ) : (
                     <div className="space-y-3">

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { PlugZap, Check, Copy, ExternalLink, ChevronRight, AlertCircle, Webhook, Database, CreditCard, Package, Truck, FileText } from 'lucide-react'
+import { PlugZap, Check, Copy, ExternalLink, Webhook, Database, CreditCard, Package, Truck, FileText } from 'lucide-react'
 import { sauvegarderConfigCaisse } from '@/lib/actions/antifraud'
 
 const CAISSES = [
@@ -55,8 +55,16 @@ const AUTRES_INTEGRATIONS = [
   },
 ]
 
+interface ConfigCaisseData {
+  source: string
+  seuil_alerte_annulation: number | null
+  webhook_secret: string | null
+  api_key: string | null
+  statut_connexion?: string | null
+}
+
 export function IntegrationsClient({ orgId, configCaisse, webhookUrl }: {
-  orgId: string, configCaisse: any, webhookUrl: string
+  orgId: string, configCaisse: ConfigCaisseData | null, webhookUrl: string
 }) {
   const [caisseSel, setCaisseSel] = useState<string>(configCaisse?.source || '')
   const [copied, setCopied] = useState(false)
@@ -170,7 +178,7 @@ export function IntegrationsClient({ orgId, configCaisse, webhookUrl }: {
               <ol className="text-xs space-y-1" style={{ color: '#4a6fa5' }}>
                 <li>1. Connectez-vous à votre back-office {CAISSES.find(c => c.id === caisseSel)?.nom}</li>
                 <li>2. Allez dans Paramètres → Webhooks / Intégrations</li>
-                <li>3. Ajoutez l'URL ci-dessus comme endpoint webhook</li>
+                <li>3. Ajoutez l&apos;URL ci-dessus comme endpoint webhook</li>
                 <li>4. Activez les événements : commandes, annulations, remises, paiements</li>
                 <li>5. Sauvegardez — RestoFlow reçoit les données en temps réel</li>
               </ol>

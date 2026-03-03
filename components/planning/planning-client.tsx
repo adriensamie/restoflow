@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Users, Clock, Euro, Copy, X, Check } from 'lucide-react'
-import { creerCreneau, supprimerCreneau, modifierStatutCreneau, creerEmploye, dupliquerSemaine } from '@/lib/actions/planning'
+import { ChevronLeft, ChevronRight, Plus, Users, Clock, Euro, Copy, X } from 'lucide-react'
+import { creerCreneau, supprimerCreneau, creerEmploye, dupliquerSemaine } from '@/lib/actions/planning'
 
 const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
 
@@ -33,7 +33,7 @@ interface Creneau {
   employes: { prenom: string; nom: string; couleur: string | null; poste: string } | null
 }
 
-export function PlanningClient({ employes, creneaux, dateDebut, dateFin }: {
+export function PlanningClient({ employes, creneaux, dateDebut }: {
   employes: Employe[], creneaux: Creneau[], dateDebut: string, dateFin: string
 }) {
   const [isPending, startTransition] = useTransition()
@@ -43,8 +43,6 @@ export function PlanningClient({ employes, creneaux, dateDebut, dateFin }: {
   const [showEmploye, setShowEmploye] = useState(false)
   const [showDupliquer, setShowDupliquer] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [selectedEmploye, setSelectedEmploye] = useState<string>('')
-  const [vue, setVue] = useState<'semaine' | 'employes'>('semaine')
 
   // Génère les 7 dates de la semaine affichée
   const getLundi = (offset: number) => {
@@ -288,7 +286,6 @@ export function PlanningClient({ employes, creneaux, dateDebut, dateFin }: {
               const creneauxEmp = creneauxLocaux.filter(c => c.employe_id === emp.id)
               const heures = creneauxEmp.reduce((a, c) => a + calcHeures(c), 0)
               const cout = creneauxEmp.reduce((a, c) => a + (c.cout_prevu || 0), 0)
-              const diff = heures - (emp.heures_contrat / 5) * 7 / 7 * creneauxEmp.length
               return (
                 <div key={emp.id} className="flex items-center gap-4 px-4 py-2.5 rounded-xl"
                   style={{ background: '#0d1526', border: '1px solid #1e2d4a' }}>

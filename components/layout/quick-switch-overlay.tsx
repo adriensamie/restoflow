@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState } from 'react'
 import { X, Users } from 'lucide-react'
 import { PinPad } from '@/components/kiosk/pin-pad'
 
@@ -20,7 +20,7 @@ interface Props {
   onClose: () => void
 }
 
-export function QuickSwitchOverlay({ staffList, currentStaffId, organizationId, onAuthenticate, onClose }: Props) {
+export function QuickSwitchOverlay({ staffList, currentStaffId, onAuthenticate, onClose }: Props) {
   const [selectedStaff, setSelectedStaff] = useState<StaffItem | null>(null)
 
   return (

@@ -18,7 +18,7 @@ export async function sauvegarderPrevision(data: {
   est_vacances?: boolean
   evenement_local?: string
   confiance?: string
-  produits_prioritaires?: any[]
+  produits_prioritaires?: { nom: string; raison: string; urgence: string }[]
 }) {
   const validated = sauvegarderPrevisionSchema.parse(data)
   await requireAccess('previsions_ia')

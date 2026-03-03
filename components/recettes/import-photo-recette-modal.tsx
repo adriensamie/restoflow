@@ -1,14 +1,19 @@
 'use client'
 
 import { useState, useRef, useTransition } from 'react'
-import { Camera, Upload, X, Check, Loader2, AlertTriangle } from 'lucide-react'
+import Image from 'next/image'
+import { Upload, X, Check, Loader2, AlertTriangle, Camera } from 'lucide-react'
 import { creerRecette } from '@/lib/actions/recettes'
 
 export function ImportPhotoRecetteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [step, setStep] = useState<'upload' | 'analyse' | 'review' | 'import'>('upload')
   const [preview, setPreview] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<{
+    recette: { nom: string; categorie: string; nb_portions: number; temps_preparation: number | null; temps_cuisson: number | null; description: string | null }
+    ingredients: { nom: string; quantite: number; unite: string }[]
+    etapes: string[]
+  } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -38,8 +43,8 @@ export function ImportPhotoRecetteModal({ onClose, onSuccess }: { onClose: () =>
       if (json.error) throw new Error(json.error)
       setData(json)
       setStep('review')
-    } catch (e: any) {
-      setError(e.message)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Erreur inconnue')
       setStep('upload')
     }
   }
@@ -48,15 +53,15 @@ export function ImportPhotoRecetteModal({ onClose, onSuccess }: { onClose: () =>
     startTransition(async () => {
       try {
         await creerRecette({
-          nom: data.recette.nom,
-          type: data.recette.categorie || 'plat',
-          nb_portions: data.recette.nb_portions || 1,
-          description: data.recette.description,
+          nom: data!.recette.nom,
+          type: data!.recette.categorie || 'plat',
+          nb_portions: data!.recette.nb_portions || 1,
+          description: data!.recette.description ?? undefined,
         })
         setStep('import')
         setTimeout(onSuccess, 1000)
-      } catch (e: any) {
-        setError(e.message)
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Erreur inconnue')
       }
     })
   }
@@ -87,12 +92,12 @@ export function ImportPhotoRecetteModal({ onClose, onSuccess }: { onClose: () =>
                 className="rounded-xl flex flex-col items-center justify-center cursor-pointer"
                 style={{ border: '2px dashed #2d1e6a', background: '#0a1120', padding: '48px', minHeight: '200px' }}>
                 {preview ? (
-                  <img src={preview} alt="preview" style={{ maxHeight: '200px', borderRadius: '8px', objectFit: 'contain' }} />
+                  <Image src={preview} alt="preview" style={{ maxHeight: '200px', borderRadius: '8px', objectFit: 'contain' }} width={400} height={200} unoptimized />
                 ) : (
                   <>
                     <Upload size={32} style={{ color: '#3b5280', marginBottom: '12px' }} />
-                    <p className="text-sm font-medium" style={{ color: '#4a6fa5' }}>Photo d'une fiche recette</p>
-                    <p className="text-xs mt-1" style={{ color: '#2d4a7a' }}>Manuscrite ou imprimée — l'IA extrait tout automatiquement</p>
+                    <p className="text-sm font-medium" style={{ color: '#4a6fa5' }}>Photo d&apos;une fiche recette</p>
+                    <p className="text-xs mt-1" style={{ color: '#2d4a7a' }}>Manuscrite ou imprimée — l&apos;IA extrait tout automatiquement</p>
                   </>
                 )}
                 <input ref={inputRef} type="file" accept="image/*" className="hidden"
@@ -107,7 +112,7 @@ export function ImportPhotoRecetteModal({ onClose, onSuccess }: { onClose: () =>
                 <button onClick={analyser}
                   className="w-full py-3 rounded-xl text-sm font-semibold text-white"
                   style={{ background: 'linear-gradient(135deg, #4f46e5, #8b5cf6)' }}>
-                  Analyser avec l'IA →
+                  Analyser avec l&apos;IA →
                 </button>
               )}
             </div>
@@ -127,21 +132,21 @@ export function ImportPhotoRecetteModal({ onClose, onSuccess }: { onClose: () =>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs block mb-1" style={{ color: '#4a6fa5' }}>Nom</label>
-                    <input value={data.recette?.nom || ''} onChange={e => setData((d: any) => ({ ...d, recette: { ...d.recette, nom: e.target.value } }))} style={inputStyle} />
+                    <input value={data.recette?.nom || ''} onChange={e => setData(d => d ? { ...d, recette: { ...d.recette, nom: e.target.value } } : null)} style={inputStyle} />
                   </div>
                   <div>
                     <label className="text-xs block mb-1" style={{ color: '#4a6fa5' }}>Type</label>
-                    <select value={data.recette?.categorie || 'plat'} onChange={e => setData((d: any) => ({ ...d, recette: { ...d.recette, categorie: e.target.value } }))} style={inputStyle}>
+                    <select value={data.recette?.categorie || 'plat'} onChange={e => setData(d => d ? { ...d, recette: { ...d.recette, categorie: e.target.value } } : null)} style={inputStyle}>
                       {['entree','plat','dessert','boisson','sauce','autre'].map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="text-xs block mb-1" style={{ color: '#4a6fa5' }}>Portions</label>
-                    <input type="number" value={data.recette?.nb_portions || 1} onChange={e => setData((d: any) => ({ ...d, recette: { ...d.recette, nb_portions: parseInt(e.target.value) } }))} style={inputStyle} />
+                    <input type="number" value={data.recette?.nb_portions || 1} onChange={e => setData(d => d ? { ...d, recette: { ...d.recette, nb_portions: parseInt(e.target.value) } } : null)} style={inputStyle} />
                   </div>
                   <div>
                     <label className="text-xs block mb-1" style={{ color: '#4a6fa5' }}>Tps prépa (min)</label>
-                    <input type="number" value={data.recette?.temps_preparation || ''} onChange={e => setData((d: any) => ({ ...d, recette: { ...d.recette, temps_preparation: parseInt(e.target.value) || null } }))} style={inputStyle} />
+                    <input type="number" value={data.recette?.temps_preparation || ''} onChange={e => setData(d => d ? { ...d, recette: { ...d.recette, temps_preparation: parseInt(e.target.value) || null } } : null)} style={inputStyle} />
                   </div>
                 </div>
               </div>
@@ -151,11 +156,11 @@ export function ImportPhotoRecetteModal({ onClose, onSuccess }: { onClose: () =>
                   {data.ingredients?.length || 0} ingrédient(s) détecté(s)
                 </p>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {(data.ingredients || []).map((ing: any, i: number) => (
+                  {(data.ingredients || []).map((ing, i) => (
                     <div key={i} className="grid grid-cols-3 gap-2 p-2 rounded-lg" style={{ background: '#0a1120', border: '1px solid #1e2d4a' }}>
-                      <input value={ing.nom} onChange={e => setData((d: any) => ({ ...d, ingredients: d.ingredients.map((x: any, idx: number) => idx === i ? { ...x, nom: e.target.value } : x) }))} style={inputStyle} placeholder="Ingrédient" />
-                      <input type="number" step="0.01" value={ing.quantite} onChange={e => setData((d: any) => ({ ...d, ingredients: d.ingredients.map((x: any, idx: number) => idx === i ? { ...x, quantite: parseFloat(e.target.value) } : x) }))} style={inputStyle} placeholder="Qté" />
-                      <select value={ing.unite} onChange={e => setData((d: any) => ({ ...d, ingredients: d.ingredients.map((x: any, idx: number) => idx === i ? { ...x, unite: e.target.value } : x) }))} style={inputStyle}>
+                      <input value={ing.nom} onChange={e => setData(d => d ? { ...d, ingredients: d.ingredients.map((x, idx) => idx === i ? { ...x, nom: e.target.value } : x) } : null)} style={inputStyle} placeholder="Ingrédient" />
+                      <input type="number" step="0.01" value={ing.quantite} onChange={e => setData(d => d ? { ...d, ingredients: d.ingredients.map((x, idx) => idx === i ? { ...x, quantite: parseFloat(e.target.value) } : x) } : null)} style={inputStyle} placeholder="Qté" />
+                      <select value={ing.unite} onChange={e => setData(d => d ? { ...d, ingredients: d.ingredients.map((x, idx) => idx === i ? { ...x, unite: e.target.value } : x) } : null)} style={inputStyle}>
                         {['kg','g','L','cl','piece','pincee','cuillere_soupe','cuillere_cafe'].map(u => <option key={u} value={u}>{u}</option>)}
                       </select>
                     </div>

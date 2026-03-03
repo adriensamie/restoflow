@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
           .eq('staff_id', staffId)
           .limit(1)
 
-        const anyEmail = prefs?.some((p: any) => p.email) ?? true
+        const anyEmail = prefs?.some(p => p.email) ?? true
         if (!anyEmail) continue
       }
 
@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ sent })
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('CRON digest-email error:', e)
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }

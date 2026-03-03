@@ -43,7 +43,7 @@ export function VinModal({ vin, onClose }: { vin?: Vin; onClose: () => void }) {
     seuil_alerte: vin?.seuil_alerte?.toString() ?? '3',
   })
 
-  const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
+  const set = (k: string, v: string | boolean) => setForm(f => ({ ...f, [k]: v }))
 
   const handleSubmit = async () => {
     if (!form.nom.trim()) return
@@ -51,19 +51,19 @@ export function VinModal({ vin, onClose }: { vin?: Vin; onClose: () => void }) {
     try {
       const payload = {
         nom: form.nom.trim(),
-        appellation: form.appellation || null,
+        appellation: form.appellation || undefined,
         categorie: form.categorie,
         zone: form.zone,
-        prix_achat_ht: form.prix_achat_ht ? parseFloat(form.prix_achat_ht) : null,
-        prix_vente_ttc: form.prix_vente_ttc ? parseFloat(form.prix_vente_ttc) : null,
+        prix_achat_ht: form.prix_achat_ht ? parseFloat(form.prix_achat_ht) : undefined,
+        prix_vente_ttc: form.prix_vente_ttc ? parseFloat(form.prix_vente_ttc) : undefined,
         vendu_au_verre: form.vendu_au_verre,
-        prix_verre_ttc: form.vendu_au_verre && form.prix_verre_ttc ? parseFloat(form.prix_verre_ttc) : null,
-        contenance_verre: form.vendu_au_verre ? parseInt(form.contenance_verre) : null,
+        prix_verre_ttc: form.vendu_au_verre && form.prix_verre_ttc ? parseFloat(form.prix_verre_ttc) : undefined,
+        contenance_verre: form.vendu_au_verre ? parseInt(form.contenance_verre) : undefined,
         stock_bouteilles: parseInt(form.stock_bouteilles) || 0,
         seuil_alerte: parseInt(form.seuil_alerte) || 3,
       }
       if (vin) await modifierVin(vin.id, payload)
-      else await creerVin(payload as any)
+      else await creerVin(payload)
       onClose()
     } catch (e) { console.error(e) }
     finally { setLoading(false) }

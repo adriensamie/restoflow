@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { ClipboardList, Plus, AlertTriangle, CheckCircle, X, Thermometer, Droplets, Package, Calendar, Flame, Bug, MoreHorizontal, Download } from 'lucide-react'
-import { creerReleve, initTemplatesDefaut, creerTemplate } from '@/lib/actions/haccp'
+import { ClipboardList, Plus, AlertTriangle, CheckCircle, X, Thermometer, Droplets, Package, Calendar, Flame, Bug, MoreHorizontal, Download, type LucideIcon } from 'lucide-react'
+import { creerReleve, initTemplatesDefaut } from '@/lib/actions/haccp'
 
-const TYPE_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string }> = {
+const TYPE_CONFIG: Record<string, { label: string; icon: LucideIcon; color: string; bg: string }> = {
   temperature:   { label: 'Température',    icon: Thermometer, color: '#f97316', bg: '#1a0a00' },
   nettoyage:     { label: 'Nettoyage',      icon: Droplets,    color: '#60a5fa', bg: '#0a1f3d' },
   reception:     { label: 'Réception',      icon: Package,     color: '#4ade80', bg: '#0a2d1a' },
@@ -107,8 +107,8 @@ export function HaccpClient({ templates, releves }: {
     try {
       await initTemplatesDefaut()
       setMsgInit('✓ Templates par défaut créés')
-    } catch (e: any) {
-      setMsgInit('Erreur : ' + e.message)
+    } catch (e: unknown) {
+      setMsgInit('Erreur : ' + (e instanceof Error ? e.message : 'Inconnue'))
     } finally {
       setInitLoading(false)
     }
@@ -124,7 +124,6 @@ export function HaccpClient({ templates, releves }: {
   // Templates par fréquence
   const quotidiens = templates.filter(t => t.frequence === 'quotidien')
   const hebdos = templates.filter(t => t.frequence === 'hebdo')
-  const autres = templates.filter(t => !['quotidien', 'hebdo'].includes(t.frequence))
 
   // Relevés déjà faits aujourd'hui
   const templatesFaitsAujourdhui = new Set(
@@ -226,7 +225,7 @@ export function HaccpClient({ templates, releves }: {
           { key: 'historique', label: 'Historique' },
           { key: 'plan', label: 'Plan HACCP' },
         ].map(o => (
-          <button key={o.key} onClick={() => setOnglet(o.key as any)}
+          <button key={o.key} onClick={() => setOnglet(o.key as typeof onglet)}
             className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
             style={{
               background: onglet === o.key ? '#1e2d4a' : 'transparent',

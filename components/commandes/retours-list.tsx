@@ -1,6 +1,6 @@
 'use client'
 
-import { FileText, Mail, Check, X, RefreshCw } from 'lucide-react'
+import { FileText, RefreshCw } from 'lucide-react'
 
 const STATUT_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   brouillon: { label: 'Brouillon', color: '#94a3b8', bg: '#1e2d4a' },

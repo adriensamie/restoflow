@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Signature invalide' }, { status: 400 })
   }
 
-  const supabase = createAdminClient() as any
+  const supabase = createAdminClient()
 
   switch (event.type) {
     case 'checkout.session.completed': {
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Try by stripe_customer_id first, fallback to org_id from metadata
-        let { error, count } = await supabase
+        const { error, count } = await supabase
           .from('organizations')
           .update(updates)
           .eq('stripe_customer_id', customerId)

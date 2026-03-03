@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { ClipboardList, Plus, Check, X, ChevronRight, AlertTriangle, Wifi, WifiOff, Clock } from 'lucide-react'
-import { creerSessionInventaire, sauvegarderLigneInventaire, validerInventaire, annulerInventaire } from '@/lib/actions/inventaire'
+import { useState, useEffect } from 'react'
+import { ClipboardList, Plus, Check, X, ChevronRight, AlertTriangle, Wifi, WifiOff } from 'lucide-react'
+import { creerSessionInventaire, sauvegarderLigneInventaire, validerInventaire } from '@/lib/actions/inventaire'
 
 const ZONES = [
   { value: 'cuisine', label: 'Cuisine' },
@@ -43,7 +43,6 @@ export function InventaireClient({ produits, vins, sessions }: {
   const [showNouvelle, setShowNouvelle] = useState(false)
   const [loading, setLoading] = useState(false)
   const [isOnline, setIsOnline] = useState(true)
-  const [filtreZone, setFiltreZone] = useState('cuisine')
   const [recherche, setRecherche] = useState('')
   const [validating, setValidating] = useState(false)
   const [erreurValidation, setErreurValidation] = useState('')
@@ -111,7 +110,7 @@ export function InventaireClient({ produits, vins, sessions }: {
         unite: ligne.unite,
       })
       setLignes(prev => prev.map(l => l.id === ligne.id ? { ...l, saved: true } : l))
-    } catch (e) {
+    } catch {
       // Stockage local si offline
       const offline = JSON.parse(localStorage.getItem('inv_offline') || '[]')
       offline.push({ ...ligne, session_id: sessionActive.id, ts: Date.now() })

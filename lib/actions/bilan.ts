@@ -39,10 +39,10 @@ export async function getBilanJournee(date: string): Promise<BilanJournee> {
     .gte('created_at', `${date}T00:00:00`)
     .lt('created_at', `${nextDayStr}T00:00:00`)
 
-  const paiements = (events ?? []).filter((e: any) => e.event_type === 'paiement')
-  const ca_total = paiements.reduce((a: number, e: any) => a + (e.montant || 0), 0)
+  const paiements = (events ?? []).filter(e => e.event_type === 'paiement')
+  const ca_total = paiements.reduce((a: number, e) => a + (e.montant || 0), 0)
   const nb_tickets = paiements.length
-  const nb_couverts = paiements.reduce((a: number, e: any) => a + (e.nb_couverts || 0), 0)
+  const nb_couverts = paiements.reduce((a: number, e) => a + (e.nb_couverts || 0), 0)
   const ticket_moyen = nb_tickets > 0 ? ca_total / nb_tickets : 0
 
   // Pertes du jour
@@ -54,7 +54,7 @@ export async function getBilanJournee(date: string): Promise<BilanJournee> {
     .gte('created_at', `${date}T00:00:00`)
     .lt('created_at', `${nextDayStr}T00:00:00`)
 
-  const pertes_montant = (pertes ?? []).reduce((a: number, p: any) => a + (p.quantite * (p.prix_unitaire || 0)), 0)
+  const pertes_montant = (pertes ?? []).reduce((a: number, p) => a + (p.quantite * (p.prix_unitaire || 0)), 0)
 
   // Entrees stock (cout matieres)
   const { data: entrees } = await supabase
@@ -65,7 +65,7 @@ export async function getBilanJournee(date: string): Promise<BilanJournee> {
     .gte('created_at', `${date}T00:00:00`)
     .lt('created_at', `${nextDayStr}T00:00:00`)
 
-  const food_cost_montant = (entrees ?? []).reduce((a: number, e: any) => a + (e.quantite * (e.prix_unitaire || 0)), 0)
+  const food_cost_montant = (entrees ?? []).reduce((a: number, e) => a + (e.quantite * (e.prix_unitaire || 0)), 0)
   const food_cost_pct = ca_total > 0 ? (food_cost_montant / ca_total) * 100 : 0
 
   // HACCP
@@ -77,7 +77,7 @@ export async function getBilanJournee(date: string): Promise<BilanJournee> {
     .lt('created_at', `${nextDayStr}T00:00:00`)
 
   const nb_releves_haccp = (releves ?? []).length
-  const nb_non_conformes = (releves ?? []).filter((r: any) => r.resultat === 'non_conforme').length
+  const nb_non_conformes = (releves ?? []).filter(r => r.resultat === 'non_conforme').length
 
   // Equipe hours (planning)
   const { data: creneaux } = await supabase

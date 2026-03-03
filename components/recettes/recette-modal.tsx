@@ -21,11 +21,28 @@ const ALLERGENES = [
   { value: 'lupin', label: 'Lupin' }, { value: 'mollusques', label: 'Mollusques' },
 ]
 
+interface RecetteData {
+  id: string; nom: string; type: string; description: string | null
+  prix_vente_ttc: number | null; cout_matiere: number | null
+  food_cost_pct: number | null; marge_pct: number | null; coefficient: number | null
+  pourcentage_ficelles: number | null; nb_portions: number | null; allergenes: string[] | null
+  recette_ingredients: RecetteIngredient[]
+}
+
+interface RecetteIngredient {
+  id: string; quantite: number; unite: string; cout_unitaire: number | null; cout_total?: number | null
+  produits?: { nom: string } | null; vins?: { nom: string } | null; nom?: string
+}
+
+interface PreRempli {
+  nom?: string; type?: string; allergenes?: string[]
+}
+
 interface Props {
-  recette?: any
+  recette?: RecetteData
   produits: { id: string; nom: string; unite: string; prix_unitaire: number | null }[]
   vins: { id: string; nom: string; appellation: string | null; prix_achat_ht: number | null }[]
-  preRempli?: any
+  preRempli?: PreRempli
   onClose: () => void
 }
 
@@ -33,7 +50,7 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
   const [loading, setLoading] = useState(false)
   const [onglet, setOnglet] = useState<'infos' | 'ingredients' | 'allergenes'>('infos')
   const [recetteId, setRecetteId] = useState<string | null>(recette?.id ?? null)
-  const [ingredients, setIngredients] = useState<any[]>(recette?.recette_ingredients ?? [])
+  const [ingredients, setIngredients] = useState<RecetteIngredient[]>(recette?.recette_ingredients ?? [])
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [form, setForm] = useState({
     nom: preRempli?.nom ?? recette?.nom ?? '',
@@ -46,9 +63,9 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
   })
   const [newIngr, setNewIngr] = useState({ produit_id: '', vin_id: '', quantite: '', unite: 'g' })
   const [error, setError] = useState('')
-  const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
+  const set = (k: string, v: string | string[]) => setForm(f => ({ ...f, [k]: v }))
 
-  const coutIngredients = ingredients.reduce((acc: number, i: any) => acc + (i.quantite * (i.cout_unitaire || 0)), 0)
+  const coutIngredients = ingredients.reduce((acc, i) => acc + (i.quantite * (i.cout_unitaire || 0)), 0)
   const ficelles = parseFloat(form.pourcentage_ficelles) || 3
   const coutTotal = coutIngredients * (1 + ficelles / 100)
   const coutPortion = coutTotal / (parseInt(form.nb_portions) || 1)
@@ -70,8 +87,8 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
     try {
       const payload = {
         nom: form.nom, type: form.type,
-        description: form.description || null,
-        prix_vente_ttc: form.prix_vente_ttc ? parseFloat(form.prix_vente_ttc) : null,
+        description: form.description || undefined,
+        prix_vente_ttc: form.prix_vente_ttc ? parseFloat(form.prix_vente_ttc) : undefined,
         pourcentage_ficelles: parseFloat(form.pourcentage_ficelles) || 3,
         nb_portions: parseInt(form.nb_portions) || 1,
         allergenes: form.allergenes,
@@ -80,7 +97,7 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
       if (recetteId) {
         await modifierRecette(recetteId, payload)
       } else {
-        const r = await creerRecette(payload as any)
+        const r = await creerRecette(payload)
         if (!r?.id) throw new Error('Erreur lors de la création')
         setRecetteId(r.id)
       }
@@ -167,7 +184,7 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
             { key: 'ingredients', label: 'Ingrédients' },
             { key: 'allergenes', label: 'Allergènes' },
           ].map(o => (
-            <button key={o.key} onClick={() => setOnglet(o.key as any)}
+            <button key={o.key} onClick={() => setOnglet(o.key as typeof onglet)}
               className="px-4 py-3 text-sm font-medium transition-all"
               style={{
                 color: onglet === o.key ? '#60a5fa' : '#4a6fa5',
@@ -272,11 +289,11 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
             <div className="space-y-4">
               {!recetteId && (
                 <div className="p-4 rounded-xl text-sm text-center" style={{ background: '#1a1505', border: '1px solid #fbbf24', color: '#fbbf24' }}>
-                  Sauvegardez d'abord les informations avant d'ajouter des ingrédients
+                  Sauvegardez d&apos;abord les informations avant d&apos;ajouter des ingrédients
                 </div>
               )}
               <div className="space-y-2">
-                {ingredients.map((i: any) => (
+                {ingredients.map(i => (
                   <div key={i.id} className="flex items-center justify-between px-4 py-2.5 rounded-lg"
                     style={{ background: '#0a1120', border: '1px solid #1e2d4a' }}>
                     <div>
@@ -287,7 +304,7 @@ export function RecetteModal({ recette, produits, vins, preRempli, onClose }: Pr
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-xs font-medium" style={{ color: '#60a5fa' }}>
-                        {i.cout_total ? `${parseFloat(i.cout_total).toFixed(3)} €` :
+                        {i.cout_total ? `${i.cout_total.toFixed(3)} €` :
                          i.cout_unitaire ? `${(i.quantite * i.cout_unitaire).toFixed(3)} €` : '—'}
                       </span>
                       <button onClick={() => handleRemoveIngredient(i.id)} style={{ color: '#f87171' }}>

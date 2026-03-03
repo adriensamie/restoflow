@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { PinPad } from '@/components/kiosk/pin-pad'
 import { KioskHeader } from '@/components/kiosk/kiosk-header'
 import { authenticatePinKiosk, logoutPin } from '@/lib/actions/pin'
@@ -20,8 +20,6 @@ function KioskContent() {
   const searchParams = useSearchParams()
   const orgId = searchParams.get('org') ?? ''
   const [staff, setStaff] = useState<{ staffId: string; nom: string; prenom: string; role: string } | null>(null)
-  const router = useRouter()
-
   const handleLogin = async (pin: string) => {
     if (!orgId) throw new Error('Parametre org manquant dans l\'URL')
     const result = await authenticatePinKiosk(orgId, pin)
@@ -45,7 +43,7 @@ function KioskContent() {
         </div>
         {!orgId && (
           <p className="text-sm" style={{ color: '#f87171' }}>
-            Ajoutez ?org=VOTRE_ORG_ID dans l'URL
+            Ajoutez ?org=VOTRE_ORG_ID dans l&apos;URL
           </p>
         )}
         <PinPad onSubmit={handleLogin} />

@@ -37,7 +37,7 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
     })
     customerId = customer.id
     // Use admin client to bypass RLS for this critical update
-    const adminSupabase = createAdminClient() as any
+    const adminSupabase = createAdminClient()
     const { error: updateErr } = await adminSupabase
       .from('organizations')
       .update({ stripe_customer_id: customerId })

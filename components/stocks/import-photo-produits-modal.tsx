@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useTransition } from 'react'
+import Image from 'next/image'
 import { Camera, Upload, X, Check, Loader2, AlertTriangle } from 'lucide-react'
 import { creerProduit } from '@/lib/actions/stocks'
 
@@ -46,10 +47,10 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
       const res = await fetch('/api/ia/analyser-photo-produit', { method: 'POST', body: fd })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
-      setProduits((data.produits || []).map((p: any) => ({ ...p, selectionne: true })))
+      setProduits((data.produits || []).map((p: { nom: string; categorie: string; unite: string; prix_unitaire: number | null; stock_initial: number | null }) => ({ ...p, selectionne: true })))
       setStep('review')
-    } catch (e: any) {
-      setError(e.message)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Erreur inconnue')
       setStep('upload')
     }
   }
@@ -58,7 +59,7 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
     setProduits(prev => prev.map((p, idx) => idx === i ? { ...p, selectionne: !p.selectionne } : p))
   }
 
-  const updateProduit = (i: number, key: string, val: any) => {
+  const updateProduit = (i: number, key: string, val: string | number | null | boolean) => {
     setProduits(prev => prev.map((p, idx) => idx === i ? { ...p, [key]: val } : p))
   }
 
@@ -110,7 +111,7 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
                 className="rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all"
                 style={{ border: '2px dashed #1e3a7a', background: '#0a1120', padding: '48px', minHeight: '200px' }}>
                 {preview ? (
-                  <img src={preview} alt="preview" style={{ maxHeight: '200px', borderRadius: '8px', objectFit: 'contain' }} />
+                  <Image src={preview} alt="preview" style={{ maxHeight: '200px', borderRadius: '8px', objectFit: 'contain' }} width={400} height={200} unoptimized />
                 ) : (
                   <>
                     <Upload size={32} style={{ color: '#3b5280', marginBottom: '12px' }} />
@@ -130,7 +131,7 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
                 <button onClick={analyser}
                   className="w-full py-3 rounded-xl text-sm font-semibold text-white"
                   style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}>
-                  Analyser avec l'IA →
+                  Analyser avec l&apos;IA →
                 </button>
               )}
             </div>

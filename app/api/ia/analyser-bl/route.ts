@@ -51,7 +51,7 @@ Pour le fournisseur, retourne un objet avec nom (string), telephone (string ou n
     if (!jsonMatch) throw new Error('Pas de JSON dans la réponse')
     const data = JSON.parse(jsonMatch[0])
     return NextResponse.json({ success: true, data })
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('ANALYSER-BL ERROR:', e)
     return NextResponse.json({ error: 'Erreur lors de l\'analyse du bon de livraison' }, { status: 500 })
   }

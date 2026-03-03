@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
+import Link from 'next/link'
 
 export default async function LandingPage() {
   const { orgId } = await auth()
@@ -159,12 +160,12 @@ export default async function LandingPage() {
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
 
       <nav>
-        <a href="/" className="logo"><div className="logo-dot"></div>RestoFlow</a>
+        <Link href="/" className="logo"><div className="logo-dot"></div>RestoFlow</Link>
         <ul className="nav-links">
           <li><a href="#fonctionnalites">Fonctionnalités</a></li>
           <li><a href="#ia">IA</a></li>
           <li><a href="#tarifs">Tarifs</a></li>
-          <li><a href="/sign-in" className="nav-cta">Connexion →</a></li>
+          <li><Link href="/sign-in" className="nav-cta">Connexion →</Link></li>
         </ul>
       </nav>
 
@@ -176,7 +177,7 @@ export default async function LandingPage() {
           <h1>La gestion<br/><em>intelligente</em><br/>de votre restaurant</h1>
           <p className="hero-sub">Stocks, food cost, planning, HACCP et prévisions IA — tout ce dont vous avez besoin pour piloter votre restaurant avec précision.</p>
           <div className="hero-actions">
-            <a href="/sign-up" className="btn-primary">Démarrer gratuitement <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+            <Link href="/sign-up" className="btn-primary">Démarrer gratuitement <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></Link>
             <a href="#fonctionnalites" className="btn-secondary">Voir les fonctionnalités</a>
           </div>
           <div className="hero-proof">
@@ -193,8 +194,8 @@ export default async function LandingPage() {
 
       <section className="section" id="fonctionnalites">
         <div className="reveal">
-          <span className="section-tag">// 9 modules intégrés</span>
-          <h2 className="section-title">Tout ce qu'il faut<br/>pour bien gérer</h2>
+          <span className="section-tag">{'// 9 modules intégrés'}</span>
+          <h2 className="section-title">Tout ce qu&apos;il faut<br/>pour bien gérer</h2>
           <p className="section-sub">Une plateforme complète pensée pour les restaurateurs, pas pour les comptables.</p>
         </div>
         <div className="modules-grid reveal">
@@ -209,7 +210,7 @@ export default async function LandingPage() {
             {icon:'👥',name:'Planning Équipe',desc:"Planning visuel par employé, duplication semaine, calcul heures.",color:'#60a5fa',bg:'rgba(96,165,250,.1)'},
             {icon:'🧼',name:'HACCP',desc:"Checklist quotidienne, relevés températures, alertes non-conformités.",color:'#4ade80',bg:'rgba(74,222,128,.1)'},
           ].map(m => (
-            <div key={m.name} className="module-card" style={{'--card-color':m.color,'--card-bg':m.bg} as any}>
+            <div key={m.name} className="module-card" style={{'--card-color':m.color,'--card-bg':m.bg} as React.CSSProperties}>
               <div className="module-icon">{m.icon}</div>
               <div className="module-name">{m.name}</div>
               <div className="module-desc">{m.desc}</div>
@@ -221,7 +222,7 @@ export default async function LandingPage() {
       <section className="ia-section" id="ia">
         <div className="ia-layout">
           <div className="reveal">
-            <span className="section-tag">// Propulsé par Claude AI</span>
+            <span className="section-tag">{'// Propulsé par Claude AI'}</span>
             <h2 className="section-title">Votre expert IA<br/>disponible 24h/24</h2>
             <p className="section-sub">Posez une question, obtenez une analyse concrète basée sur vos données réelles.</p>
             <div className="ia-features">
@@ -269,7 +270,7 @@ export default async function LandingPage() {
 
       <section className="pricing-section" id="tarifs">
         <div style={{textAlign:'center'}} className="reveal">
-          <span className="section-tag">// Tarification simple</span>
+          <span className="section-tag">{'// Tarification simple'}</span>
           <h2 className="section-title">Des tarifs clairs, sans surprises</h2>
           <p className="section-sub" style={{margin:'0 auto 60px'}}>Essai gratuit 14 jours · Sans carte bancaire · Résiliation à tout moment.</p>
         </div>
@@ -283,7 +284,7 @@ export default async function LandingPage() {
               <li>Planning équipe</li><li>HACCP basique</li>
               <li className="inactive">Prévisions IA</li><li className="inactive">Assistant IA</li><li className="inactive">Anti-Fraude</li>
             </ul>
-            <a href="/sign-up" className="pricing-btn secondary">Commencer l'essai</a>
+            <Link href="/sign-up" className="pricing-btn secondary">Commencer l&apos;essai</Link>
           </div>
           <div className="pricing-card featured">
             <div className="pricing-badge">✦ Le plus populaire</div>
@@ -295,14 +296,14 @@ export default async function LandingPage() {
               <li>Anti-Fraude Caisse</li><li>Cave à vins</li><li>Import BL par photo</li>
               <li>Fiches de paie</li><li>Intégrations caisses</li>
             </ul>
-            <a href="/sign-up" className="pricing-btn primary">Démarrer gratuitement →</a>
+            <Link href="/sign-up" className="pricing-btn primary">Démarrer gratuitement →</Link>
           </div>
           <div className="pricing-card">
             <div className="pricing-name">Multi-Sites</div>
             <div className="pricing-price"><sup>€</sup>199</div>
-            <div className="pricing-period">par mois · jusqu'à 5 établissements</div>
+            <div className="pricing-period">par mois · jusqu&apos;à 5 établissements</div>
             <ul className="pricing-features">
-              <li>Tout Pro inclus</li><li>Jusqu'à 5 établissements</li><li>Dashboard consolidé</li>
+              <li>Tout Pro inclus</li><li>Jusqu&apos;à 5 établissements</li><li>Dashboard consolidé</li>
               <li>Support prioritaire</li><li>Onboarding dédié</li><li>API accès complet</li>
               <li>SLA 99.9% garanti</li><li>Comparaison inter-sites</li>
             </ul>
@@ -313,8 +314,8 @@ export default async function LandingPage() {
 
       <section className="testimonials-section">
         <div style={{textAlign:'center'}} className="reveal">
-          <span className="section-tag">// Ils nous font confiance</span>
-          <h2 className="section-title">Ce qu'en disent<br/>nos clients</h2>
+          <span className="section-tag">{'// Ils nous font confiance'}</span>
+          <h2 className="section-title">Ce qu&apos;en disent<br/>nos clients</h2>
         </div>
         <div className="testimonials-grid reveal">
           {[
@@ -340,7 +341,7 @@ export default async function LandingPage() {
           <h2>Prêt à transformer<br/>votre restaurant ?</h2>
           <p>Rejoignez 500+ restaurateurs qui pilotent leur activité avec RestoFlow.</p>
           <div className="cta-actions">
-            <a href="/sign-up" className="btn-primary">Essai gratuit 14 jours <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+            <Link href="/sign-up" className="btn-primary">Essai gratuit 14 jours <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></Link>
             <a href="mailto:hello@restoflow.fr" className="btn-secondary">Demander une démo</a>
           </div>
         </div>

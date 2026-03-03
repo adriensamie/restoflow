@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { X, FileText, Mail, Loader2, Download } from 'lucide-react'
+import { X, FileText, Mail, Loader2 } from 'lucide-react'
 import { creerRetour } from '@/lib/actions/retours'
 
 interface Ecart {
@@ -11,8 +11,8 @@ interface Ecart {
   unite: string
   quantite_commandee: number
   quantite_recue: number
-  prix_unitaire?: number
-  note_ecart?: string
+  prix_unitaire: number | null | undefined
+  note_ecart: string | undefined
 }
 
 interface Props {

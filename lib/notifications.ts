@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import webpush from 'web-push'
+import type { Json } from '@/types/database'
 
 export type NotificationType =
   | 'stock_critique'
@@ -27,7 +28,7 @@ export async function createNotification(params: {
   type: NotificationType
   titre: string
   message: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   canal?: string[]
 }) {
   const supabase = await createServerSupabaseClient()
@@ -38,7 +39,7 @@ export async function createNotification(params: {
     type: params.type,
     titre: params.titre,
     message: params.message,
-    metadata: params.metadata ?? null,
+    metadata: (params.metadata as unknown as Json) ?? null,
     canal: params.canal ?? ['in_app'],
     lue: false,
   })
@@ -60,7 +61,7 @@ export async function dispatchNotification(params: {
   type: NotificationType
   titre: string
   message: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }) {
   const supabase = await createServerSupabaseClient()
 
@@ -90,7 +91,7 @@ export async function dispatchNotification(params: {
 async function sendPushNotifications(
   organizationId: string,
   staffId: string | null,
-  payload: { title: string; body: string; data?: any }
+  payload: { title: string; body: string; data?: Record<string, unknown> }
 ) {
   try {
     const supabase = await createServerSupabaseClient()
@@ -111,7 +112,7 @@ async function sendPushNotifications(
     const pushPayload = JSON.stringify(payload)
 
     await Promise.allSettled(
-      subscriptions.map((sub: any) =>
+      subscriptions.map(sub =>
         webpush.sendNotification(
           {
             endpoint: sub.endpoint,

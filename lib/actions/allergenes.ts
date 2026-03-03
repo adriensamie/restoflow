@@ -66,7 +66,7 @@ export async function updateProduitAllergenes(produitId: string, allergenes: str
     .eq('organization_id', organization_id)
 
   if (recipeIngredients) {
-    const recetteIds: string[] = [...new Set<string>(recipeIngredients.map((r: any) => r.recette_id))]
+    const recetteIds: string[] = [...new Set<string>(recipeIngredients.map(r => r.recette_id))]
     for (const recetteId of recetteIds) {
       await calculerAllergenesRecette(recetteId)
     }

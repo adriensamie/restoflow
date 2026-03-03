@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, Package, Plus, Edit2, Trash2, ArrowUpDown } from 'lucide-react'
+import { AlertTriangle, Package, Plus, Edit2 } from 'lucide-react'
 import { MouvementModal } from './mouvement-modal'
 import { ProduitModal } from './produit-modal'
 
