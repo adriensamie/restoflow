@@ -13,8 +13,12 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
     }
 
     const { plan } = (await req.json()) as { plan: PlanId }
-    if (!PRICE_IDS[plan]) {
+    if (!['starter', 'pro', 'enterprise'].includes(plan)) {
       return NextResponse.json({ error: 'Plan invalide' }, { status: 400 })
+    }
+    if (!PRICE_IDS[plan]) {
+      console.error(`[checkout] STRIPE_PRICE_${plan.toUpperCase()} env var is not configured`)
+      return NextResponse.json({ error: 'La configuration Stripe est incomplète. Contactez le support.' }, { status: 500 })
     }
 
     const supabase = await createServerSupabaseClient()

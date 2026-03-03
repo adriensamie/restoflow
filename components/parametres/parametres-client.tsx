@@ -1,14 +1,16 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Settings, Save, Check, Building2, FileText, Globe, ChevronRight, Trash2, AlertTriangle } from 'lucide-react'
+import { Settings, Save, Check, Building2, FileText, Globe, ChevronRight, Trash2, AlertTriangle, Shield } from 'lucide-react'
 import { sauvegarderParametres } from '@/lib/actions/parametres'
 import { reinitialiserApplication } from '@/lib/actions/reset'
+import { RolesConfig } from '@/components/parametres/roles-config'
 
 const ONGLETS = [
   { key: 'general', label: 'Général', icon: Building2 },
   { key: 'fiscal', label: 'Fiscal', icon: FileText },
   { key: 'regional', label: 'Régional', icon: Globe },
+  { key: 'roles', label: 'Droits', icon: Shield },
   { key: 'danger', label: 'Zone danger', icon: Trash2 },
 ]
 
@@ -19,7 +21,13 @@ interface Organisation {
   taux_tva: number | null; taux_charges_salariales: number | null
 }
 
-export function ParametresClient({ organisation }: { organisation: Organisation | null }) {
+interface ParametresProps {
+  organisation: Organisation | null
+  isPatron?: boolean
+  initialPermissions?: Record<string, { allowed_routes: string[]; allowed_actions: string[] }>
+}
+
+export function ParametresClient({ organisation, isPatron = false, initialPermissions = {} }: ParametresProps) {
   const [onglet, setOnglet] = useState('general')
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
@@ -84,7 +92,7 @@ export function ParametresClient({ organisation }: { organisation: Organisation 
             <p className="text-sm" style={{ color: '#4a6fa5' }}>Configuration de votre restaurant</p>
           </div>
         </div>
-        {onglet !== 'danger' && (
+        {onglet !== 'danger' && onglet !== 'roles' && (
           <button onClick={handleSave} disabled={isPending}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
             style={{ background: saved ? 'linear-gradient(135deg,#059669,#10b981)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', opacity: isPending ? 0.6 : 1 }}>
@@ -204,6 +212,21 @@ export function ParametresClient({ organisation }: { organisation: Organisation 
                   </div>
                 </div>
               </div>
+            </>
+          )}
+
+          {/* RÔLES / DROITS */}
+          {onglet === 'roles' && (
+            <>
+              {isPatron ? (
+                <RolesConfig initialPermissions={initialPermissions} />
+              ) : (
+                <div className="text-center py-12">
+                  <Shield size={32} className="mx-auto mb-3" style={{ color: '#4a6fa5' }} />
+                  <p className="text-sm font-medium" style={{ color: '#e2e8f0' }}>Accès réservé au patron</p>
+                  <p className="text-xs mt-1" style={{ color: '#4a6fa5' }}>Seul le patron peut configurer les droits des employés</p>
+                </div>
+              )}
             </>
           )}
 

@@ -121,9 +121,20 @@ async function fetchOrgBillingAdmin(clerkOrgId: string): Promise<OrgBilling | nu
       const trialEndsAt = new Date()
       trialEndsAt.setDate(trialEndsAt.getDate() + 14)
 
+      // Fetch real org name from Clerk instead of using the slug
+      let orgName = 'Mon restaurant'
+      try {
+        const { clerkClient: getClerkClient } = await import('@clerk/nextjs/server')
+        const clerk = await getClerkClient()
+        const clerkOrg = await clerk.organizations.getOrganization({ organizationId: clerkOrgId })
+        orgName = clerkOrg.name || orgName
+      } catch (e) {
+        console.error('[layout] Failed to fetch org name from Clerk:', e)
+      }
+
       await adminSupabase.from('organizations').insert({
         clerk_org_id: clerkOrgId,
-        nom: orgSlug || 'Mon restaurant',
+        nom: orgName,
         slug: orgSlug || null,
         plan: 'trial',
         trial_ends_at: trialEndsAt.toISOString(),
