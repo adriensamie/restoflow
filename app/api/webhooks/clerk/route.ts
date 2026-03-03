@@ -74,6 +74,7 @@ export async function POST(req: Request) {
         .from('organizations')
         .update({ nom: data.name ?? 'Organisation', slug: data.slug ?? null })
         .eq('clerk_org_id', data.id ?? '')
+        .is('parent_organization_id', null)
     }
 
     if (eventType === 'organizationMembership.created') {
@@ -81,6 +82,7 @@ export async function POST(req: Request) {
         .from('organizations')
         .select('id')
         .eq('clerk_org_id', data.organization?.id ?? '')
+        .is('parent_organization_id', null)
         .single()
 
       if (org) {
@@ -106,6 +108,7 @@ export async function POST(req: Request) {
         .from('organizations')
         .select('id')
         .eq('clerk_org_id', data.organization?.id ?? '')
+        .is('parent_organization_id', null)
         .single()
 
       if (org) {

@@ -26,6 +26,7 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
       .from('organizations')
       .select('id, stripe_customer_id, nom')
       .eq('clerk_org_id', orgId)
+      .is('parent_organization_id', null)
       .returns<{ id: string; stripe_customer_id: string | null; nom: string }[]>()
       .single()
 

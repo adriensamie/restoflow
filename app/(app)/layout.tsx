@@ -96,6 +96,7 @@ async function fetchOrgBilling(clerkOrgId: string): Promise<OrgBilling | null> {
       .from('organizations')
       .select('plan, trial_ends_at, subscription_status, stripe_customer_id')
       .eq('clerk_org_id', clerkOrgId)
+      .is('parent_organization_id', null)
       .single()
 
     if (error || !data) return null
@@ -114,6 +115,7 @@ async function fetchOrgBillingAdmin(clerkOrgId: string): Promise<OrgBilling | nu
       .from('organizations')
       .select('plan, trial_ends_at, subscription_status, stripe_customer_id')
       .eq('clerk_org_id', clerkOrgId)
+      .is('parent_organization_id', null)
       .single()
 
     if (!data) {

@@ -25,6 +25,7 @@ export async function getOrgBilling(): Promise<OrgBilling> {
     .from('organizations')
     .select('plan, trial_ends_at, subscription_status, stripe_customer_id')
     .eq('clerk_org_id', orgId)
+    .is('parent_organization_id', null)
     .returns<{
       plan: Plan
       trial_ends_at: string | null

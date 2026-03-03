@@ -9,7 +9,7 @@ export const GET = withRateLimit(async function GET(req: NextRequest) {
   if (!orgId) return NextResponse.json([])
 
   const { data: org } = await supabase
-    .from('organizations').select('id').eq('clerk_org_id', orgId).single()
+    .from('organizations').select('id').eq('clerk_org_id', orgId).is('parent_organization_id', null).single()
   if (!org?.id) return NextResponse.json([])
 
   const dateDebut = req.nextUrl.searchParams.get('date_debut')

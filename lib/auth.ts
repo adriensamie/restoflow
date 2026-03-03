@@ -67,6 +67,7 @@ export async function getCurrentStaff(): Promise<{
     .from('organizations')
     .select('id')
     .eq('clerk_org_id', orgId)
+    .is('parent_organization_id', null)
     .returns<{ id: string }[]>()
     .single()
   if (!org) throw new Error('Organisation introuvable')
