@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, ShoppingCart, Clock, CheckCircle, XCircle, Truck, ScanLine, type LucideIcon } from 'lucide-react'
-import { NouvelleCommandeModal } from './nouvelle-commande-modal'
 import { AnalyserBLModal } from './analyser-bl-modal'
 
 
@@ -37,13 +36,7 @@ export function CommandesClient({ commandes, fournisseurs }: {
   fournisseurs: Fournisseur[]
 }) {
   const router = useRouter()
-  const [showModal, setShowModal] = useState(false)
   const [showBLModal, setShowBLModal] = useState(false)
-  const [blPreRempli, setBlPreRempli] = useState<{
-    fournisseur: { nom: string }
-    lignes: { nom_normalise: string; quantite: number; unite: string; prix_unitaire_ht: number | null }[]
-    date: string | null
-  } | null>(null)
   const [filtreStatut, setFiltreStatut] = useState('tous')
 
   const commandesFiltrees = commandes.filter(c =>
@@ -73,7 +66,7 @@ export function CommandesClient({ commandes, fournisseurs }: {
             style={{ background: '#1e2d4a', color: '#94a3b8' }}>
             <ScanLine size={16} />Import BL
           </button>
-          <button onClick={() => setShowModal(true)}
+          <button onClick={() => router.push('/commandes/nouvelle')}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
             style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}>
             <Plus size={16} />Nouvelle commande
@@ -168,20 +161,12 @@ export function CommandesClient({ commandes, fournisseurs }: {
         })}
       </div>
 
-      {showModal && (
-        <NouvelleCommandeModal
-          fournisseurs={fournisseurs}
-          blPreRempli={blPreRempli}
-          onClose={() => { setShowModal(false); setBlPreRempli(null) }}
-        />
-      )}
-
       {showBLModal && (
         <AnalyserBLModal
           onResultat={(resultat) => {
-            setBlPreRempli(resultat)
             setShowBLModal(false)
-            setShowModal(true)
+            const encoded = encodeURIComponent(JSON.stringify(resultat))
+            router.push(`/commandes/nouvelle?bl=${encoded}`)
           }}
           onClose={() => setShowBLModal(false)}
         />

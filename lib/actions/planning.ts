@@ -138,8 +138,11 @@ export async function dupliquerSemaine(dateDebut: string, dateFin: string, offse
     return { ...c, organization_id, date: d.toISOString().slice(0, 10), statut: 'planifie' }
   })
 
-  const { error: insError } = await supabase.from('creneaux_planning').insert(nouveaux)
+  const { data: inserted, error: insError } = await supabase
+    .from('creneaux_planning')
+    .insert(nouveaux)
+    .select('*, employes(prenom, nom, couleur, poste)')
   if (insError) throw new Error(insError.message)
   revalidatePath('/planning')
-  return nouveaux.length
+  return inserted
 }

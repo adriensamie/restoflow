@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Users, Clock, Euro, Copy, X } from 'lucide-react'
+import { useState, useTransition, useEffect, useCallback } from 'react'
+import { ChevronLeft, ChevronRight, Plus, Users, Clock, Euro, Copy, X, Check } from 'lucide-react'
 import { creerCreneau, supprimerCreneau, creerEmploye, dupliquerSemaine } from '@/lib/actions/planning'
 
 const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
@@ -43,19 +43,38 @@ export function PlanningClient({ employes, creneaux, dateDebut }: {
   const [showEmploye, setShowEmploye] = useState(false)
   const [showDupliquer, setShowDupliquer] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [dupliquerError, setDupliquerError] = useState('')
+  const [dupliquerSuccess, setDupliquerSuccess] = useState(false)
 
   // Génère les 7 dates de la semaine affichée
-  const getLundi = (offset: number) => {
+  const getLundi = useCallback((offset: number) => {
     const d = new Date(dateDebut)
     d.setDate(d.getDate() + offset * 7)
     return d
-  }
+  }, [dateDebut])
   const lundi = getLundi(semaineOffset)
   const dates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(lundi)
     d.setDate(lundi.getDate() + i)
     return d.toISOString().slice(0, 10)
   })
+
+  // Refetch creneaux when week changes
+  useEffect(() => {
+    if (semaineOffset === 0) {
+      setCreneauxLocaux(creneaux)
+      return
+    }
+    const monday = getLundi(semaineOffset)
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    const d0 = monday.toISOString().slice(0, 10)
+    const d6 = sunday.toISOString().slice(0, 10)
+    fetch(`/api/planning/creneaux?date_debut=${d0}&date_fin=${d6}`)
+      .then(res => res.json())
+      .then((data: Creneau[]) => setCreneauxLocaux(data))
+      .catch(() => setCreneauxLocaux([]))
+  }, [semaineOffset, creneaux, getLundi])
 
   const labelSemaine = `${lundi.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} — ${new Date(dates[6]).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`
 
@@ -476,31 +495,56 @@ export function PlanningClient({ employes, creneaux, dateDebut }: {
             <div className="flex items-center justify-between px-6 py-4"
               style={{ borderBottom: '1px solid #1e2d4a' }}>
               <h2 className="font-semibold" style={{ color: '#e2e8f0' }}>Dupliquer la semaine</h2>
-              <button onClick={() => setShowDupliquer(false)} style={{ color: '#4a6fa5' }}><X size={18} /></button>
+              <button onClick={() => { setShowDupliquer(false); setDupliquerError(''); setDupliquerSuccess(false) }}
+                style={{ color: '#4a6fa5' }}><X size={18} /></button>
             </div>
-            <div className="p-6">
-              <p className="text-sm mb-4" style={{ color: '#4a6fa5' }}>
+            <div className="p-6 space-y-3">
+              <p className="text-sm" style={{ color: '#4a6fa5' }}>
                 Copier tous les créneaux de cette semaine vers la semaine suivante ?
               </p>
               <p className="text-xs p-3 rounded-lg" style={{ background: '#0a1120', color: '#60a5fa' }}>
-                {creneauxLocaux.length} créneau{creneauxLocaux.length > 1 ? 'x' : ''} seront copiés
+                {creneauxLocaux.length} créneau{creneauxLocaux.length > 1 ? 'x' : ''} à copier
               </p>
+              {dupliquerError && (
+                <p className="text-xs p-3 rounded-lg" style={{ background: '#1a0505', color: '#f87171', border: '1px solid #7f1d1d' }}>
+                  {dupliquerError}
+                </p>
+              )}
+              {dupliquerSuccess && (
+                <p className="text-xs p-3 rounded-lg flex items-center gap-2" style={{ background: '#0a2d1a', color: '#4ade80', border: '1px solid #166534' }}>
+                  <Check size={14} /> Créneaux dupliqués — semaine suivante affichée
+                </p>
+              )}
             </div>
             <div className="flex justify-end gap-3 px-6 py-4" style={{ borderTop: '1px solid #1e2d4a' }}>
-              <button onClick={() => setShowDupliquer(false)} className="px-4 py-2 rounded-lg text-sm"
-                style={{ background: '#1e2d4a', color: '#94a3b8' }}>Annuler</button>
-              <button onClick={() => {
-                startTransition(async () => {
-                  try {
-                    await dupliquerSemaine(dates[0], dates[6], 7)
-                    setShowDupliquer(false)
-                  } catch (e) { console.error(e) }
-                })
-              }} disabled={isPending}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
-                style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}>
-                <Copy size={14} />Dupliquer
+              <button onClick={() => { setShowDupliquer(false); setDupliquerError(''); setDupliquerSuccess(false) }}
+                className="px-4 py-2 rounded-lg text-sm"
+                style={{ background: '#1e2d4a', color: '#94a3b8' }}>
+                {dupliquerSuccess ? 'Fermer' : 'Annuler'}
               </button>
+              {!dupliquerSuccess && (
+                <button onClick={() => {
+                  setDupliquerError('')
+                  startTransition(async () => {
+                    try {
+                      await dupliquerSemaine(dates[0], dates[6], 7)
+                      setDupliquerSuccess(true)
+                      // Navigate to next week after a short delay
+                      setTimeout(() => {
+                        setShowDupliquer(false)
+                        setDupliquerSuccess(false)
+                        setSemaineOffset(s => s + 1)
+                      }, 1000)
+                    } catch (e: unknown) {
+                      setDupliquerError(e instanceof Error ? e.message : 'Erreur lors de la duplication')
+                    }
+                  })
+                }} disabled={isPending || creneauxLocaux.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}>
+                  {isPending ? 'Duplication...' : <><Copy size={14} />Dupliquer</>}
+                </button>
+              )}
             </div>
           </div>
         </div>
