@@ -54,24 +54,46 @@ export function ReceptionClient({ commande, lignes }: Props) {
 
   const handleReceptionner = () => {
     setError(null)
-    startTransition(async () => {
-      try {
-        const result = await receptionnerLivraison(
-          commande.id,
-          lignes.map(l => ({
-            ligne_id: l.id,
-            produit_id: l.produit_id,
-            quantite_commandee: l.quantite_commandee,
-            quantite_recue: quantitesRecues[l.id] ?? l.quantite_commandee,
-            prix_unitaire: prixUnitaires[l.id] ?? l.prix_unitaire ?? undefined,
-            note_ecart: notesEcart[l.id] || undefined,
-          }))
-        )
-        setEcarts(result?.ecarts ?? [])
-        setDone(true)
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erreur lors de la réception')
-      }
+
+    // Compute ecarts optimistically for instant feedback
+    const optimisticEcarts = lignes
+      .map(l => {
+        const qr = quantitesRecues[l.id] ?? l.quantite_commandee
+        const pct = l.quantite_commandee > 0
+          ? Math.abs(qr - l.quantite_commandee) / l.quantite_commandee * 100
+          : 0
+        return {
+          ligne_id: l.id,
+          produit_id: l.produit_id,
+          quantite_commandee: l.quantite_commandee,
+          quantite_recue: qr,
+          prix_unitaire: prixUnitaires[l.id] ?? l.prix_unitaire ?? undefined,
+          note_ecart: notesEcart[l.id] || undefined,
+          pct,
+        }
+      })
+      .filter(e => e.pct > 5)
+
+    // Optimistic: show success immediately
+    setEcarts(optimisticEcarts)
+    setDone(true)
+
+    // Fire server action in background
+    receptionnerLivraison(
+      commande.id,
+      lignes.map(l => ({
+        ligne_id: l.id,
+        produit_id: l.produit_id,
+        quantite_commandee: l.quantite_commandee,
+        quantite_recue: quantitesRecues[l.id] ?? l.quantite_commandee,
+        prix_unitaire: prixUnitaires[l.id] ?? l.prix_unitaire ?? undefined,
+        note_ecart: notesEcart[l.id] || undefined,
+      }))
+    ).catch(e => {
+      // Rollback on error
+      setDone(false)
+      setEcarts([])
+      setError(e instanceof Error ? e.message : 'Erreur lors de la réception')
     })
   }
 
@@ -247,17 +269,13 @@ export function ReceptionClient({ commande, lignes }: Props) {
           </button>
           <button onClick={() => {
             setError(null)
-            startTransition(async () => {
-              try {
-                await envoyerCommande(commande.id)
-              } catch (e) {
-                setError(e instanceof Error ? e.message : "Erreur lors de l'envoi")
-              }
+            router.push('/commandes')
+            envoyerCommande(commande.id).catch(e => {
+              console.error('[envoyerCommande]', e instanceof Error ? e.message : e)
             })
           }} disabled={isPending}
             className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium text-white"
             style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}>
-            {isPending ? <Loader2 size={16} className="animate-spin" /> : null}
             Envoyer au fournisseur
           </button>
         </div>

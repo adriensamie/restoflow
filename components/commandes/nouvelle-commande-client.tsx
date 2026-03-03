@@ -251,37 +251,35 @@ export function NouvelleCommandeClient({ fournisseurs, blPreRempli, commandeExis
     if (panier.size === 0) { setError('Ajoutez au moins un produit au panier'); return }
     setError('')
 
-    startTransition(async () => {
-      try {
-        const lignes: { produit_id: string; quantite_commandee: number; prix_unitaire?: number }[] = []
-        panier.forEach((item, produitId) => {
-          lignes.push({
-            produit_id: produitId,
-            quantite_commandee: item.quantite,
-            prix_unitaire: item.prix_unitaire || undefined,
-          })
+    const lignes: { produit_id: string; quantite_commandee: number; prix_unitaire?: number }[] = []
+    panier.forEach((item, produitId) => {
+      lignes.push({
+        produit_id: produitId,
+        quantite_commandee: item.quantite,
+        prix_unitaire: item.prix_unitaire || undefined,
+      })
+    })
+
+    // Optimistic: navigate immediately, server action runs in background
+    router.push('/commandes')
+
+    const action = isEditMode
+      ? modifierCommande({
+          commande_id: commandeExistante!.id,
+          fournisseur_id: fournisseurId,
+          date_livraison_prevue: dateLivraison || undefined,
+          note: note || undefined,
+          lignes,
+        })
+      : creerCommande({
+          fournisseur_id: fournisseurId,
+          date_livraison_prevue: dateLivraison || undefined,
+          note: note || undefined,
+          lignes,
         })
 
-        if (isEditMode) {
-          await modifierCommande({
-            commande_id: commandeExistante!.id,
-            fournisseur_id: fournisseurId,
-            date_livraison_prevue: dateLivraison || undefined,
-            note: note || undefined,
-            lignes,
-          })
-        } else {
-          await creerCommande({
-            fournisseur_id: fournisseurId,
-            date_livraison_prevue: dateLivraison || undefined,
-            note: note || undefined,
-            lignes,
-          })
-        }
-        router.push('/commandes')
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : 'Erreur')
-      }
+    action.catch((e: unknown) => {
+      console.error('[commande] Error:', e instanceof Error ? e.message : e)
     })
   }
 

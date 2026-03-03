@@ -188,71 +188,65 @@ export async function envoyerCommande(id: string) {
     .from('commandes').update({ statut: 'envoyee' }).eq('id', id).eq('organization_id', organization_id)
   if (error) throw new Error(error.message)
 
-  // Try to send email if fournisseur has contact_email
-  try {
-    const { data: commande } = await supabase
-      .from('commandes')
-      .select('*, fournisseurs(nom, contact_email, adresse)')
-      .eq('id', id)
-      .single()
+  revalidatePath('/commandes')
 
-    if (commande?.fournisseurs?.contact_email) {
-      const { data: lignes } = await supabase
-        .from('commande_lignes')
-        .select('*, produits(nom, unite)')
-        .eq('commande_id', id)
-
-      const { data: org } = await supabase
-        .from('organizations')
-        .select('nom, adresse')
-        .eq('id', organization_id)
+  // Fire-and-forget: email PDF to fournisseur (don't block response)
+  ;(async () => {
+    try {
+      const { data: commande } = await supabase
+        .from('commandes')
+        .select('*, fournisseurs(nom, contact_email, adresse)')
+        .eq('id', id)
         .single()
 
-      if (lignes && org) {
-        const { generateBonCommandePDF } = await import('@/lib/pdf/bon-commande')
-        const pdfBytes = generateBonCommandePDF({
-          numero: commande.numero,
-          date: new Date().toLocaleDateString('fr-FR'),
-          date_livraison_prevue: commande.date_livraison_prevue
-            ? new Date(commande.date_livraison_prevue).toLocaleDateString('fr-FR')
-            : null,
-          fournisseur: {
-            nom: commande.fournisseurs.nom,
-            adresse: commande.fournisseurs.adresse,
-            contact_email: commande.fournisseurs.contact_email,
-          },
-          organisation: { nom: org.nom, adresse: org.adresse },
-          lignes: lignes.map(l => ({
-            produit_nom: l.produits?.nom ?? 'Produit',
-            unite: l.produits?.unite ?? '',
-            quantite: l.quantite_commandee,
-            prix_unitaire: l.prix_unitaire ?? 0,
-          })),
-          total_ht: commande.total_ht ?? 0,
-          note: commande.note,
-        })
+      if (!commande?.fournisseurs?.contact_email) return
 
-        // Send via Resend (lazy import)
-        const { Resend } = await import('resend')
-        const resend = new Resend(process.env.RESEND_API_KEY)
-        await resend.emails.send({
-          from: 'RestoFlow <commandes@restoflow.app>',
-          to: commande.fournisseurs.contact_email,
-          subject: `Bon de commande ${commande.numero} — ${org.nom}`,
-          text: `Veuillez trouver ci-joint le bon de commande ${commande.numero}.\n\nCordialement,\n${org.nom}`,
-          attachments: [{
-            filename: `${commande.numero}.pdf`,
-            content: Buffer.from(pdfBytes).toString('base64'),
-          }],
-        })
-      }
+      const [{ data: lignes }, { data: org }] = await Promise.all([
+        supabase.from('commande_lignes').select('*, produits(nom, unite)').eq('commande_id', id),
+        supabase.from('organizations').select('nom, adresse').eq('id', organization_id).single(),
+      ])
+
+      if (!lignes || !org) return
+
+      const { generateBonCommandePDF } = await import('@/lib/pdf/bon-commande')
+      const pdfBytes = generateBonCommandePDF({
+        numero: commande.numero,
+        date: new Date().toLocaleDateString('fr-FR'),
+        date_livraison_prevue: commande.date_livraison_prevue
+          ? new Date(commande.date_livraison_prevue).toLocaleDateString('fr-FR')
+          : null,
+        fournisseur: {
+          nom: commande.fournisseurs.nom,
+          adresse: commande.fournisseurs.adresse,
+          contact_email: commande.fournisseurs.contact_email,
+        },
+        organisation: { nom: org.nom, adresse: org.adresse },
+        lignes: lignes.map((l: { produits: { nom: string; unite: string } | null; quantite_commandee: number; prix_unitaire: number | null }) => ({
+          produit_nom: l.produits?.nom ?? 'Produit',
+          unite: l.produits?.unite ?? '',
+          quantite: l.quantite_commandee,
+          prix_unitaire: l.prix_unitaire ?? 0,
+        })),
+        total_ht: commande.total_ht ?? 0,
+        note: commande.note,
+      })
+
+      const { Resend } = await import('resend')
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      await resend.emails.send({
+        from: 'RestoFlow <commandes@restoflow.app>',
+        to: commande.fournisseurs.contact_email,
+        subject: `Bon de commande ${commande.numero} — ${org.nom}`,
+        text: `Veuillez trouver ci-joint le bon de commande ${commande.numero}.\n\nCordialement,\n${org.nom}`,
+        attachments: [{
+          filename: `${commande.numero}.pdf`,
+          content: Buffer.from(pdfBytes).toString('base64'),
+        }],
+      })
+    } catch (emailErr) {
+      console.error('[envoyerCommande] Email error:', emailErr)
     }
-  } catch (emailErr) {
-    // Email failure should not block the status update
-    console.error('[envoyerCommande] Email error:', emailErr)
-  }
-
-  revalidatePath('/commandes')
+  })()
 }
 
 // ─── Réception livraison ─────────────────────────────────────────────────────
@@ -271,46 +265,50 @@ export async function receptionnerLivraison(
     .from('commandes').select('id').eq('id', validated.commandeId).eq('organization_id', organization_id).single()
   if (cmdCheckError || !commande) throw new Error('Commande introuvable')
 
-  // 1. Mettre à jour chaque ligne (scoped via commande_id)
-  for (const ligne of validated.lignes) {
-    const { error: ligneError } = await supabase
-      .from('commande_lignes')
+  // 1. Batch: mettre à jour toutes les lignes en parallèle
+  const ligneUpdates = validated.lignes.map(ligne =>
+    supabase.from('commande_lignes')
       .update({ quantite_recue: ligne.quantite_recue, note_ecart: ligne.note_ecart })
       .eq('id', ligne.ligne_id)
       .eq('commande_id', validated.commandeId)
-    if (ligneError) throw new Error(ligneError.message)
+  )
 
-    // 2. Créer un mouvement stock "entree" pour chaque produit reçu
-    if (ligne.quantite_recue > 0) {
-      const { error: mvtError } = await supabase.from('mouvements_stock').insert({
-        produit_id: ligne.produit_id,
-        organization_id,
-        type: 'entree',
-        quantite: ligne.quantite_recue,
-        prix_unitaire: ligne.prix_unitaire,
-        motif: `Livraison commande`,
-        note: ligne.note_ecart || null,
-      })
-      if (mvtError) throw new Error(mvtError.message)
-    }
-  }
+  // 2. Batch: insérer tous les mouvements stock en une seule requête
+  const mouvements = validated.lignes
+    .filter(l => l.quantite_recue > 0)
+    .map(l => ({
+      produit_id: l.produit_id,
+      organization_id,
+      type: 'entree' as const,
+      quantite: l.quantite_recue,
+      prix_unitaire: l.prix_unitaire,
+      motif: 'Livraison commande',
+      note: l.note_ecart || null,
+    }))
 
-  // 3. Vérifier si tout reçu ou partiel
+  // 3. Statut
   const toutRecu = validated.lignes.every(l => l.quantite_recue >= l.quantite_commandee)
   const statut = toutRecu ? 'recue' : 'recue_partielle'
 
-  const { error: cmdError } = await supabase
-    .from('commandes')
-    .update({ statut, date_livraison_reelle: new Date().toISOString().slice(0, 10) })
-    .eq('id', validated.commandeId)
-    .eq('organization_id', organization_id)
-  if (cmdError) throw new Error(cmdError.message)
+  // Execute lignes + mouvements + statut in parallel
+  const [ligneResults, mvtResult, cmdResult] = await Promise.all([
+    Promise.all(ligneUpdates),
+    mouvements.length > 0
+      ? supabase.from('mouvements_stock').insert(mouvements)
+      : Promise.resolve({ error: null }),
+    supabase.from('commandes')
+      .update({ statut, date_livraison_reelle: new Date().toISOString().slice(0, 10) })
+      .eq('id', validated.commandeId)
+      .eq('organization_id', organization_id),
+  ])
 
-  revalidatePath('/commandes')
-  revalidatePath('/livraisons')
-  revalidatePath('/stocks')
+  // Check for errors
+  const ligneError = ligneResults.find(r => r.error)?.error
+  if (ligneError) throw new Error(ligneError.message)
+  if (mvtResult.error) throw new Error(mvtResult.error.message)
+  if (cmdResult.error) throw new Error(cmdResult.error.message)
 
-  // Retourner les écarts pour génération PDF côté client
+  // Écarts pour le client
   const ecarts = validated.lignes.filter(l => {
     const pct = l.quantite_commandee > 0
       ? Math.abs(l.quantite_recue - l.quantite_commandee) / l.quantite_commandee * 100
@@ -318,69 +316,80 @@ export async function receptionnerLivraison(
     return pct > 5
   })
 
-  // Notification if ecarts detected
-  if (ecarts.length > 0) {
-    try {
-      await createNotification({
-        organizationId: organization_id,
-        type: 'ecart_livraison',
-        titre: `${ecarts.length} ecart(s) de livraison`,
-        message: `Commande ${validated.commandeId} : ${ecarts.length} produit(s) avec ecart > 5%`,
-        canal: ['in_app', 'web_push'],
-      })
-    } catch {}
-  }
+  // 4. Price tracking — batch: une seule requête pour tous les prix actuels
+  const lignesAvecPrix = validated.lignes.filter(l => l.prix_unitaire != null && l.prix_unitaire! > 0)
+  if (lignesAvecPrix.length > 0) {
+    const produitIds = lignesAvecPrix.map(l => l.produit_id)
+    const { data: produitsActuels } = await supabase
+      .from('produits')
+      .select('id, prix_unitaire')
+      .in('id', produitIds)
+      .eq('organization_id', organization_id)
 
-  // Price tracking: record historical prices and auto-update
-  for (const ligne of validated.lignes) {
-    if (ligne.prix_unitaire != null && ligne.prix_unitaire > 0) {
-      try {
-        // Get current price for comparison
-        const { data: produit } = await supabase
-          .from('produits')
-          .select('prix_unitaire')
-          .eq('id', ligne.produit_id)
+    const prixMap = new Map((produitsActuels ?? []).map(p => [p.id, p.prix_unitaire]))
+    const today = new Date().toISOString().slice(0, 10)
+
+    // Batch insert price histories
+    const histories = lignesAvecPrix.map(l => {
+      const prixPrecedent = prixMap.get(l.produit_id) ?? null
+      const variationPct = prixPrecedent && prixPrecedent > 0
+        ? ((l.prix_unitaire! - prixPrecedent) / prixPrecedent) * 100
+        : null
+      return {
+        organization_id,
+        produit_id: l.produit_id,
+        prix: l.prix_unitaire!,
+        prix_precedent: prixPrecedent,
+        variation_pct: variationPct ? Math.round(variationPct * 100) / 100 : null,
+        source: 'reception_bl' as const,
+        commande_id: validated.commandeId,
+        date_releve: today,
+      }
+    })
+
+    // Batch update product prices + insert histories in parallel
+    await Promise.all([
+      supabase.from('prix_produit_historique').insert(histories),
+      ...lignesAvecPrix.map(l =>
+        supabase.from('produits')
+          .update({ prix_unitaire: l.prix_unitaire })
+          .eq('id', l.produit_id)
           .eq('organization_id', organization_id)
-          .single()
+      ),
+    ])
 
-        const prixPrecedent = produit?.prix_unitaire ?? null
-        const variationPct = prixPrecedent && prixPrecedent > 0
-          ? ((ligne.prix_unitaire - prixPrecedent) / prixPrecedent) * 100
-          : null
-
-        // Insert price history
-        await supabase.from('prix_produit_historique').insert({
-          organization_id,
-          produit_id: ligne.produit_id,
-          prix: ligne.prix_unitaire,
-          prix_precedent: prixPrecedent,
-          variation_pct: variationPct ? Math.round(variationPct * 100) / 100 : null,
-          source: 'reception_bl',
-          commande_id: validated.commandeId,
-          date_releve: new Date().toISOString().slice(0, 10),
-        })
-
-        // Auto-update product price
-        const { error: updErr } = await supabase
-          .from('produits')
-          .update({ prix_unitaire: ligne.prix_unitaire })
-          .eq('id', ligne.produit_id)
-          .eq('organization_id', organization_id)
-        if (updErr) console.error('Prix update error:', updErr.message)
-
-        // Alert if price increase > 10%
-        if (variationPct && variationPct > 10) {
-          await createNotification({
-            organizationId: organization_id,
-            type: 'hausse_prix',
-            titre: `Hausse de prix > 10%`,
-            message: `+${variationPct.toFixed(1)}% sur un produit (${prixPrecedent?.toFixed(2)} → ${ligne.prix_unitaire.toFixed(2)} EUR)`,
-            canal: ['in_app', 'web_push'],
-          })
-        }
-      } catch {}
+    // Fire-and-forget: price alerts (don't block response)
+    const alertes = lignesAvecPrix.filter(l => {
+      const prev = prixMap.get(l.produit_id)
+      return prev && prev > 0 && ((l.prix_unitaire! - prev) / prev) * 100 > 10
+    })
+    if (alertes.length > 0) {
+      Promise.all(alertes.map(l => {
+        const prev = prixMap.get(l.produit_id)!
+        const pct = ((l.prix_unitaire! - prev) / prev) * 100
+        return createNotification({
+          organizationId: organization_id,
+          type: 'hausse_prix',
+          titre: `Hausse de prix > 10%`,
+          message: `+${pct.toFixed(1)}% sur un produit (${prev.toFixed(2)} → ${l.prix_unitaire!.toFixed(2)} EUR)`,
+          canal: ['in_app', 'web_push'],
+        }).catch(() => {})
+      })).catch(() => {})
     }
   }
+
+  // Fire-and-forget: notification écarts (don't block response)
+  if (ecarts.length > 0) {
+    createNotification({
+      organizationId: organization_id,
+      type: 'ecart_livraison',
+      titre: `${ecarts.length} ecart(s) de livraison`,
+      message: `Commande ${validated.commandeId} : ${ecarts.length} produit(s) avec ecart > 5%`,
+      canal: ['in_app', 'web_push'],
+    }).catch(() => {})
+  }
+
+  revalidatePath('/commandes')
 
   return { statut, ecarts }
 }

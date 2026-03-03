@@ -1,9 +1,19 @@
 -- Migration: Multi-site RLS support
 -- Allows parent orgs (enterprise) to access data from child organizations
--- Run this in Supabase SQL Editor
+-- Run this ENTIRE file in Supabase SQL Editor
+
+-- 0. Fix get_org_id() to always return the PARENT org (ignore child orgs)
+-- Without this fix, multiple orgs sharing the same clerk_org_id break .single() queries
+CREATE OR REPLACE FUNCTION public.get_org_id()
+RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT id FROM public.organizations
+  WHERE clerk_org_id = (auth.jwt() ->> 'org_id')
+    AND parent_organization_id IS NULL
+  LIMIT 1
+$$;
 
 -- 1. Helper function: returns all org IDs accessible to current user
--- (the org itself + any child organizations with parent_organization_id = current org)
+-- (the parent org + any child organizations)
 CREATE OR REPLACE FUNCTION public.get_accessible_org_ids()
 RETURNS uuid[] LANGUAGE sql STABLE SECURITY DEFINER AS $$
   SELECT array_agg(id) FROM public.organizations
@@ -298,4 +308,22 @@ DO $$ BEGIN
   BEGIN DROP POLICY IF EXISTS "Enable access for org members" ON lots_produit; EXCEPTION WHEN OTHERS THEN NULL; END;
 END $$;
 CREATE POLICY "org_multi_site_access" ON lots_produit
+  USING (organization_id = ANY(get_accessible_org_ids()));
+
+-- ─── commande_lignes (FK via commande_id, RLS via organization_id) ────────
+DO $$ BEGIN
+  BEGIN DROP POLICY IF EXISTS "org_isolation" ON commande_lignes; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN DROP POLICY IF EXISTS "commande_lignes_org_policy" ON commande_lignes; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN DROP POLICY IF EXISTS "Enable access for org members" ON commande_lignes; EXCEPTION WHEN OTHERS THEN NULL; END;
+END $$;
+CREATE POLICY "org_multi_site_access" ON commande_lignes
+  USING (organization_id = ANY(get_accessible_org_ids()));
+
+-- ─── lignes_retour (FK via retour_id, RLS via organization_id) ────────────
+DO $$ BEGIN
+  BEGIN DROP POLICY IF EXISTS "org_isolation" ON lignes_retour; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN DROP POLICY IF EXISTS "lignes_retour_org_policy" ON lignes_retour; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN DROP POLICY IF EXISTS "Enable access for org members" ON lignes_retour; EXCEPTION WHEN OTHERS THEN NULL; END;
+END $$;
+CREATE POLICY "org_multi_site_access" ON lignes_retour
   USING (organization_id = ANY(get_accessible_org_ids()));

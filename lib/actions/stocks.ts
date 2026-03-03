@@ -84,27 +84,28 @@ export async function ajouterMouvement(formData: {
     .insert({ ...validated, organization_id })
   if (error) throw new Error(error.message)
 
-  // Check stock critique after movement
-  try {
-    const { data: stock } = await supabase
-      .from('stock_actuel')
-      .select('nom, quantite_actuelle, seuil_alerte, unite')
-      .eq('produit_id', validated.produit_id)
-      .eq('organization_id', organization_id)
-      .single()
-    if (stock && stock.quantite_actuelle <= stock.seuil_alerte) {
-      await createNotification({
-        organizationId: organization_id,
-        type: 'stock_critique',
-        titre: `Stock critique : ${stock.nom}`,
-        message: `${stock.quantite_actuelle} ${stock.unite} restant(s) (seuil : ${stock.seuil_alerte})`,
-        canal: ['in_app', 'web_push'],
-      })
-    }
-  } catch {}
-
   revalidatePath('/stocks')
-  revalidatePath('/pertes')
+
+  // Fire-and-forget: stock critique check + notification (don't block response)
+  ;(async () => {
+    try {
+      const { data: stock } = await supabase
+        .from('stock_actuel')
+        .select('nom, quantite_actuelle, seuil_alerte, unite')
+        .eq('produit_id', validated.produit_id)
+        .eq('organization_id', organization_id)
+        .single()
+      if (stock && stock.quantite_actuelle <= stock.seuil_alerte) {
+        await createNotification({
+          organizationId: organization_id,
+          type: 'stock_critique',
+          titre: `Stock critique : ${stock.nom}`,
+          message: `${stock.quantite_actuelle} ${stock.unite} restant(s) (seuil : ${stock.seuil_alerte})`,
+          canal: ['in_app', 'web_push'],
+        })
+      }
+    } catch {}
+  })()
 }
 
 export async function enregistrerInventaire(
@@ -167,44 +168,38 @@ export async function importerProduitsAvecFournisseur(input: {
     }
   }
 
-  // Create products + link to fournisseur
-  let count = 0
-  for (const p of input.produits) {
-    const validated = creerProduitSchema.parse({
-      nom: p.nom,
-      categorie: p.categorie,
-      unite: p.unite,
-      prix_unitaire: p.prix_unitaire,
-      seuil_alerte: 0,
-    })
-    const { data: produit, error } = await supabase
-      .from('produits')
-      .insert({ ...validated, organization_id })
-      .select('id')
-      .single()
-    if (error) {
-      console.error(`Erreur création produit "${p.nom}":`, error.message)
-      continue
-    }
+  // Batch: validate all products first
+  const validatedProduits = input.produits.map(p => creerProduitSchema.parse({
+    nom: p.nom,
+    categorie: p.categorie,
+    unite: p.unite,
+    prix_unitaire: p.prix_unitaire,
+    seuil_alerte: 0,
+  }))
 
-    if (fournisseur_id) {
-      const { error: linkError } = await supabase
-        .from('produit_fournisseur')
-        .upsert({
-          produit_id: produit.id,
-          fournisseur_id,
-          organization_id,
-          fournisseur_principal: true,
-          prix_negocie: p.prix_unitaire ?? null,
-        }, { onConflict: 'produit_id,fournisseur_id' })
-      if (linkError) console.error(`Erreur liaison produit-fournisseur:`, linkError.message)
-    }
+  // Batch insert all products at once
+  const { data: createdProduits, error: insertErr } = await supabase
+    .from('produits')
+    .insert(validatedProduits.map(v => ({ ...v, organization_id })))
+    .select('id')
 
-    count++
+  if (insertErr) throw new Error(`Erreur creation produits: ${insertErr.message}`)
+  const count = createdProduits?.length ?? 0
+
+  // Batch link products to fournisseur
+  if (fournisseur_id && createdProduits?.length) {
+    const liens = createdProduits.map((prod, i) => ({
+      produit_id: prod.id,
+      fournisseur_id,
+      organization_id,
+      fournisseur_principal: true,
+      prix_negocie: input.produits[i].prix_unitaire ?? null,
+    }))
+    await supabase.from('produit_fournisseur')
+      .upsert(liens, { onConflict: 'produit_id,fournisseur_id' })
   }
 
   revalidatePath('/stocks')
-  revalidatePath('/fournisseurs')
   return { count, fournisseur_id }
 }
 
