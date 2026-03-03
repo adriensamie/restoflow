@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { auth } from '@clerk/nextjs/server'
+import { withRateLimit } from '@/lib/api-rate-limit'
 
-export async function GET() {
+export const GET = withRateLimit(async function GET(_req: NextRequest) {
   const supabase = await createServerSupabaseClient()
   const { orgId } = await auth()
   if (!orgId) return NextResponse.json([])
@@ -18,4 +19,4 @@ export async function GET() {
     .order('nom')
 
   return NextResponse.json(data ?? [])
-}
+}, { maxRequests: 30, windowMs: 60 * 1000, prefix: 'stocks-produits' })

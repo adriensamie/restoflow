@@ -28,11 +28,37 @@ export async function linkChildOrganization(childClerkOrgId: string) {
 
   const { data: child, error: findError } = await supabase
     .from('organizations')
-    .select('id')
+    .select('id, parent_organization_id')
     .eq('clerk_org_id', childClerkOrgId)
     .single()
 
   if (findError || !child) throw new Error('Organisation enfant introuvable')
+
+  // Security: prevent hijacking an org that already belongs to another parent
+  if (child.parent_organization_id && child.parent_organization_id !== parentOrgId) {
+    throw new Error('Cette organisation appartient deja a un autre groupe')
+  }
+
+  // Security: only allow linking orgs where the current user is also admin
+  // Verify the caller has a patron/admin role in the child org via Clerk
+  const { auth: getAuth } = await import('@clerk/nextjs/server')
+  const { orgId: callerClerkOrgId } = await getAuth()
+
+  // The child org must match the caller's current Clerk org, or we verify via staff membership
+  const { data: callerStaff } = await supabase
+    .from('staff')
+    .select('role')
+    .eq('organization_id', child.id)
+    .eq('actif', true)
+    .limit(1)
+
+  // RLS ensures only the caller's own staff record is returned
+  const isPatronInChild = callerStaff && callerStaff.length > 0 && callerStaff[0].role === 'patron'
+  const isSameClerkOrg = callerClerkOrgId === childClerkOrgId
+
+  if (!isPatronInChild && !isSameClerkOrg) {
+    throw new Error('Vous devez etre patron de cette organisation pour la rattacher')
+  }
 
   const { error } = await supabase
     .from('organizations')

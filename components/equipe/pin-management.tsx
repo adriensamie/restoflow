@@ -9,7 +9,7 @@ interface StaffItem {
   nom: string
   prenom: string
   role: string
-  pin_hash: string | null
+  has_pin: boolean
 }
 
 interface Props {
@@ -68,7 +68,7 @@ export function PinManagement({ staffList }: Props) {
             <div className="flex-1">
               <p className="text-sm font-medium" style={{ color: '#e2e8f0' }}>{s.prenom} {s.nom}</p>
               <p className="text-xs capitalize" style={{ color: '#4a6fa5' }}>
-                {s.role} · {s.pin_hash ? 'PIN actif' : 'Pas de PIN'}
+                {s.role} · {s.has_pin ? 'PIN actif' : 'Pas de PIN'}
               </p>
             </div>
 
@@ -91,9 +91,9 @@ export function PinManagement({ staffList }: Props) {
                 <button onClick={() => { setEditingId(s.id); setNewPin('') }}
                   className="px-3 py-1 rounded-lg text-xs font-medium"
                   style={{ background: '#1e2d4a', color: '#60a5fa' }}>
-                  {s.pin_hash ? 'Modifier' : 'Definir PIN'}
+                  {s.has_pin ? 'Modifier' : 'Definir PIN'}
                 </button>
-                {s.pin_hash && (
+                {s.has_pin && (
                   <button onClick={() => handleRemovePin(s.id)} disabled={isPending}
                     className="p-1.5 rounded-lg" style={{ color: '#f87171' }}>
                     <Trash2 size={14} />

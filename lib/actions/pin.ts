@@ -94,7 +94,7 @@ export async function authenticatePinKiosk(organizationId: string, pin: string) 
 
   const { data: staffList } = await supabase
     .from('staff')
-    .select('id, pin_hash, nom, prenom, organization_id, pin_changed_at')
+    .select('id, pin_hash, role, nom, prenom, organization_id, pin_changed_at')
     .eq('organization_id', organizationId)
     .eq('actif', true)
     .not('pin_hash', 'is', null)
@@ -104,22 +104,15 @@ export async function authenticatePinKiosk(organizationId: string, pin: string) 
   for (const staff of staffList) {
     const valid = await verifyPin(pin, staff.pin_hash!)
     if (valid) {
-      // Fetch role separately (not exposed in kiosk list)
-      const { data: fullStaff } = await supabase
-        .from('staff')
-        .select('role')
-        .eq('id', staff.id)
-        .single()
-
       await createPinSession({
         staffId: staff.id,
         orgId: staff.organization_id,
-        role: fullStaff?.role ?? 'employe',
+        role: staff.role,
         nom: staff.nom,
         prenom: staff.prenom,
         pinChangedAt: staff.pin_changed_at ?? undefined,
       })
-      return { staffId: staff.id, role: fullStaff?.role ?? 'employe', nom: staff.nom, prenom: staff.prenom }
+      return { staffId: staff.id, role: staff.role, nom: staff.nom, prenom: staff.prenom }
     }
   }
 

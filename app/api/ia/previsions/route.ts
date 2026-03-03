@@ -13,7 +13,19 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
   if (!access.allowed) return NextResponse.json({ error: 'Fonctionnalité réservée au plan Pro.' }, { status: 403 })
 
   try {
-    const { date, historique, meteo, estFerie, estVacances, evenementLocal, produitsStock } = await req.json()
+    const body = await req.json()
+    const { date, historique, meteo, estFerie, estVacances, evenementLocal, produitsStock } = body
+
+    // Validate input bounds
+    if (!date || typeof date !== 'string') {
+      return NextResponse.json({ error: 'Date requise' }, { status: 400 })
+    }
+    if (historique && Array.isArray(historique) && historique.length > 90) {
+      return NextResponse.json({ error: 'Historique limité à 90 jours' }, { status: 400 })
+    }
+    if (produitsStock && Array.isArray(produitsStock) && produitsStock.length > 100) {
+      return NextResponse.json({ error: 'Produits limités à 100' }, { status: 400 })
+    }
 
     const prompt = `Tu es un expert en restauration. Analyse les données suivantes et génère des prévisions précises pour le ${date}.
 
