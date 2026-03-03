@@ -28,6 +28,8 @@ export async function POST(req: NextRequest) {
 
   const supabase = createAdminClient()
 
+  console.log('[stripe webhook] event:', event.type)
+
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object
@@ -36,34 +38,49 @@ export async function POST(req: NextRequest) {
       const plan = session.metadata?.plan as Plan | undefined
       const orgId = session.metadata?.org_id
 
-      if (plan) {
-        const updates = {
-          plan,
-          stripe_customer_id: customerId,
-          stripe_subscription_id: subscriptionId,
-          subscription_status: 'active',
-          trial_ends_at: null,
-        }
+      console.log('[stripe webhook] checkout.session.completed:', {
+        customerId, subscriptionId, plan, orgId,
+        metadata: session.metadata,
+      })
 
-        // Try by stripe_customer_id first, then fallback to org_id
-        const { data: updated, error } = await supabase
+      if (!plan) {
+        console.error('[stripe webhook] SKIP: pas de plan dans metadata')
+        break
+      }
+
+      const updates = {
+        plan,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscriptionId,
+        subscription_status: 'active',
+        trial_ends_at: null,
+      }
+
+      // Try by org_id first (most reliable), then fallback to stripe_customer_id
+      let success = false
+
+      if (orgId) {
+        const { data, error } = await supabase
+          .from('organizations')
+          .update(updates)
+          .eq('id', orgId)
+          .select('id')
+        console.log('[stripe webhook] update by org_id:', { orgId, data, error })
+        if (data && data.length > 0) success = true
+      }
+
+      if (!success) {
+        const { data, error } = await supabase
           .from('organizations')
           .update(updates)
           .eq('stripe_customer_id', customerId)
           .select('id')
+        console.log('[stripe webhook] update by customer_id:', { customerId, data, error })
+        if (data && data.length > 0) success = true
+      }
 
-        if ((!updated || updated.length === 0) && orgId) {
-          console.warn('[stripe webhook] customer_id match failed, trying org_id:', orgId)
-          const result = await supabase
-            .from('organizations')
-            .update(updates)
-            .eq('id', orgId)
-            .select('id')
-          if (result.error) console.error('Stripe webhook checkout update error (org_id fallback):', result.error)
-          else if (!result.data || result.data.length === 0) console.error('Stripe webhook: org_id fallback also matched 0 rows for', orgId)
-        } else if (error) {
-          console.error('Stripe webhook checkout update error:', error)
-        }
+      if (!success) {
+        console.error('[stripe webhook] ECHEC: aucune org mise a jour pour', { orgId, customerId })
       }
       break
     }
