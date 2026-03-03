@@ -126,6 +126,88 @@ export async function enregistrerInventaire(
   if (error) throw new Error(error.message)
   revalidatePath('/stocks')
 }
+// ─── Import avec fournisseur ─────────────────────────────────────────────────
+
+export async function importerProduitsAvecFournisseur(input: {
+  fournisseurNom: string | null
+  produits: {
+    nom: string
+    categorie: string
+    unite: string
+    prix_unitaire?: number
+  }[]
+}) {
+  await requireRole(['patron', 'manager'])
+  const supabase = await createServerSupabaseClient()
+  const organization_id = await getOrgUUID()
+
+  let fournisseur_id: string | null = null
+
+  // Find or create fournisseur
+  if (input.fournisseurNom?.trim()) {
+    const nom = input.fournisseurNom.trim()
+    const { data: existing } = await supabase
+      .from('fournisseurs')
+      .select('id')
+      .eq('organization_id', organization_id)
+      .ilike('nom', nom)
+      .eq('actif', true)
+      .maybeSingle()
+
+    if (existing) {
+      fournisseur_id = existing.id
+    } else {
+      const { data: created, error } = await supabase
+        .from('fournisseurs')
+        .insert({ nom, organization_id })
+        .select('id')
+        .single()
+      if (error) throw new Error(`Erreur création fournisseur: ${error.message}`)
+      fournisseur_id = created.id
+    }
+  }
+
+  // Create products + link to fournisseur
+  let count = 0
+  for (const p of input.produits) {
+    const validated = creerProduitSchema.parse({
+      nom: p.nom,
+      categorie: p.categorie,
+      unite: p.unite,
+      prix_unitaire: p.prix_unitaire,
+      seuil_alerte: 0,
+    })
+    const { data: produit, error } = await supabase
+      .from('produits')
+      .insert({ ...validated, organization_id })
+      .select('id')
+      .single()
+    if (error) {
+      console.error(`Erreur création produit "${p.nom}":`, error.message)
+      continue
+    }
+
+    if (fournisseur_id) {
+      const { error: linkError } = await supabase
+        .from('produit_fournisseur')
+        .upsert({
+          produit_id: produit.id,
+          fournisseur_id,
+          organization_id,
+          fournisseur_principal: true,
+          prix_negocie: p.prix_unitaire ?? null,
+        }, { onConflict: 'produit_id,fournisseur_id' })
+      if (linkError) console.error(`Erreur liaison produit-fournisseur:`, linkError.message)
+    }
+
+    count++
+  }
+
+  revalidatePath('/stocks')
+  revalidatePath('/fournisseurs')
+  return { count, fournisseur_id }
+}
+
 export async function supprimerProduit(id: string) {
   await requireRole(['patron', 'manager'])
   const supabase = await createServerSupabaseClient()

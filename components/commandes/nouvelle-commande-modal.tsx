@@ -42,13 +42,16 @@ export function NouvelleCommandeModal({ fournisseurs, blPreRempli, onClose }: Pr
   const [openDropdown, setOpenDropdown] = useState<number | null>(null)
   const dropdownRefs = useRef<(HTMLDivElement | null)[]>([])
 
-  // Charger les produits depuis l'API au montage
+  // Charger les produits — re-fetch quand le fournisseur change
   useEffect(() => {
-    fetch('/api/stocks/produits')
+    const url = fournisseurId
+      ? `/api/stocks/produits?fournisseur_id=${fournisseurId}`
+      : '/api/stocks/produits'
+    fetch(url)
       .then(res => res.json())
       .then((data: Produit[]) => setAllProduits(data))
-      .catch(() => {})
-  }, [])
+      .catch(() => setAllProduits([]))
+  }, [fournisseurId])
 
   // Fermer le dropdown au clic extérieur
   useEffect(() => {
@@ -222,23 +225,40 @@ export function NouvelleCommandeModal({ fournisseurs, blPreRempli, onClose }: Pr
                     {openDropdown === i && (
                       <div className="absolute z-50 left-0 right-0 top-full mt-1 rounded-lg overflow-hidden shadow-xl max-h-48 overflow-y-auto"
                         style={{ background: '#0d1526', border: '1px solid #1e2d4a' }}>
-                        {getFilteredProduits(ligne.nom).length > 0 ? (
-                          getFilteredProduits(ligne.nom).map(p => (
-                            <button key={p.produit_id} type="button"
-                              className="w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:brightness-125"
-                              style={{ color: '#e2e8f0', background: p.produit_id === ligne.produit_id ? '#1e2d4a' : 'transparent', borderBottom: '1px solid #1a2540' }}
-                              onClick={() => selectProduit(i, p)}>
-                              <span className="truncate">{p.nom}</span>
-                              <span className="text-xs flex-shrink-0 ml-2" style={{ color: '#4a6fa5' }}>
-                                {p.categorie ?? ''} · {p.unite}
-                              </span>
-                            </button>
+                        {(() => {
+                          const filtered = getFilteredProduits(ligne.nom)
+                          if (filtered.length === 0) {
+                            return (
+                              <div className="px-3 py-2 text-xs" style={{ color: '#4a6fa5' }}>
+                                {fournisseurId ? 'Aucun produit lié à ce fournisseur' : 'Aucun produit trouvé — saisie libre'}
+                              </div>
+                            )
+                          }
+                          // Group by category
+                          const grouped = filtered.reduce<Record<string, Produit[]>>((acc, p) => {
+                            const cat = p.categorie || 'autres'
+                            ;(acc[cat] ??= []).push(p)
+                            return acc
+                          }, {})
+                          return Object.entries(grouped).map(([cat, items]) => (
+                            <div key={cat}>
+                              {Object.keys(grouped).length > 1 && (
+                                <div className="px-3 py-1 text-xs uppercase font-semibold" style={{ background: '#0a1628', color: '#3b5280' }}>{cat}</div>
+                              )}
+                              {items.map(p => (
+                                <button key={p.produit_id} type="button"
+                                  className="w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:brightness-125"
+                                  style={{ color: '#e2e8f0', background: p.produit_id === ligne.produit_id ? '#1e2d4a' : 'transparent', borderBottom: '1px solid #1a2540' }}
+                                  onClick={() => selectProduit(i, p)}>
+                                  <span className="truncate">{p.nom}</span>
+                                  <span className="text-xs flex-shrink-0 ml-2" style={{ color: '#4a6fa5' }}>
+                                    {p.categorie ?? ''} · {p.unite}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
                           ))
-                        ) : (
-                          <div className="px-3 py-2 text-xs" style={{ color: '#4a6fa5' }}>
-                            Aucun produit trouvé — saisie libre
-                          </div>
-                        )}
+                        })()}
                       </div>
                     )}
                   </div>

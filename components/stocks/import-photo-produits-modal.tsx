@@ -2,8 +2,8 @@
 
 import { useState, useRef, useTransition } from 'react'
 import Image from 'next/image'
-import { Camera, Upload, X, Check, Loader2, AlertTriangle } from 'lucide-react'
-import { creerProduit } from '@/lib/actions/stocks'
+import { Camera, Upload, X, Check, Loader2, AlertTriangle, Truck } from 'lucide-react'
+import { importerProduitsAvecFournisseur } from '@/lib/actions/stocks'
 
 interface ProduitExtrait {
   nom: string
@@ -19,6 +19,7 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
   const [preview, setPreview] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [produits, setProduits] = useState<ProduitExtrait[]>([])
+  const [fournisseurNom, setFournisseurNom] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [importCount, setImportCount] = useState(0)
   const [isPending, startTransition] = useTransition()
@@ -51,6 +52,7 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
       }
       const data = await res.json()
       if (data.error) throw new Error(data.error)
+      if (data.fournisseur) setFournisseurNom(data.fournisseur)
       setProduits((data.produits || []).map((p: { nom: string; categorie: string; unite: string; prix_unitaire: number | null; stock_initial: number | null }) => ({ ...p, selectionne: true })))
       setStep('review')
     } catch (e: unknown) {
@@ -71,20 +73,18 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
     const selected = produits.filter(p => p.selectionne)
     setStep('import')
     startTransition(async () => {
-      let count = 0
-      for (const p of selected) {
-        try {
-          await creerProduit({
+      try {
+        const result = await importerProduitsAvecFournisseur({
+          fournisseurNom: fournisseurNom?.trim() || null,
+          produits: selected.map(p => ({
             nom: p.nom,
             categorie: p.categorie,
             unite: p.unite,
             prix_unitaire: p.prix_unitaire || undefined,
-            seuil_alerte: 0,
-          })
-          count++
-          setImportCount(count)
-        } catch (e) { console.error(e) }
-      }
+          })),
+        })
+        setImportCount(result.count)
+      } catch (e) { console.error(e) }
       onSuccess()
     })
   }
@@ -150,6 +150,21 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
 
           {step === 'review' && (
             <div className="space-y-4">
+              <div className="rounded-xl p-3" style={{ background: '#0a1f3d', border: '1px solid #1e3a7a' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Truck size={14} style={{ color: '#60a5fa' }} />
+                  <label className="text-xs font-medium" style={{ color: '#60a5fa' }}>Fournisseur détecté</label>
+                </div>
+                <input
+                  value={fournisseurNom || ''}
+                  onChange={e => setFournisseurNom(e.target.value || null)}
+                  placeholder="Aucun fournisseur détecté — saisir manuellement (optionnel)"
+                  style={{ background: '#0a1120', border: '1px solid #1e2d4a', color: '#e2e8f0', borderRadius: '6px', padding: '6px 10px', fontSize: '13px', outline: 'none', width: '100%' }}
+                />
+                <p className="text-xs mt-1.5" style={{ color: '#3b5280' }}>
+                  {fournisseurNom ? 'Sera créé automatiquement s\'il n\'existe pas' : 'Laissez vide pour importer sans fournisseur'}
+                </p>
+              </div>
               <p className="text-sm" style={{ color: '#4a6fa5' }}>
                 {produits.filter(p => p.selectionne).length} produit(s) sélectionné(s) sur {produits.length} détectés
               </p>
@@ -192,7 +207,7 @@ export function ImportPhotoProduitsModal({ onClose, onSuccess }: { onClose: () =
                 ))}
               </div>
               <div className="flex gap-3">
-                <button onClick={() => { setStep('upload'); setPreview(null); setFile(null) }}
+                <button onClick={() => { setStep('upload'); setPreview(null); setFile(null); setFournisseurNom(null) }}
                   className="px-4 py-2 rounded-lg text-sm" style={{ background: '#0a1120', color: '#4a6fa5', border: '1px solid #1e2d4a' }}>
                   Nouvelle photo
                 </button>

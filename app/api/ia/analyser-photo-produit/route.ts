@@ -42,8 +42,10 @@ export const POST = withRateLimit(async function POST(req: NextRequest) {
           {
             type: 'text',
             text: `Analyse cette image et extrais tous les produits/ingrédients visibles.
-Pour chaque produit, retourne un JSON avec cette structure exacte:
+Si un nom de fournisseur est visible sur le document (en-tête, logo, tampon), extrais-le aussi.
+Retourne un JSON avec cette structure exacte:
 {
+  "fournisseur": "nom du fournisseur" ou null,
   "produits": [
     {
       "nom": "nom du produit",
