@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { OrganizationSwitcher, UserButton } from '@clerk/nextjs'
-import { Users } from 'lucide-react'
+import { Users, Menu } from 'lucide-react'
 import { NotificationBadge } from '@/components/layout/notification-badge'
 import { NotificationPanel } from '@/components/layout/notification-panel'
+import { useSidebar } from '@/components/layout/sidebar-provider'
 
 interface Props {
   role?: string
@@ -13,11 +14,20 @@ interface Props {
 
 export function Header({ role = 'patron', staffName = '' }: Props) {
   const [showNotifs, setShowNotifs] = useState(false)
+  const { toggle } = useSidebar()
 
   return (
     <>
-      <header className="px-6 py-3 flex items-center justify-between" style={{ background: '#080d1a', borderBottom: '1px solid #1e2d4a' }}>
+      <header className="px-4 md:px-6 py-3 flex items-center justify-between" style={{ background: '#080d1a', borderBottom: '1px solid #1e2d4a' }}>
         <div className="flex items-center gap-3">
+          {/* Mobile hamburger menu */}
+          <button
+            onClick={toggle}
+            className="md:hidden p-2 rounded-lg"
+            style={{ color: '#94a3b8', background: '#0d1526', border: '1px solid #1e2d4a' }}
+          >
+            <Menu size={20} />
+          </button>
           <OrganizationSwitcher
             hidePersonal={true}
             createOrganizationMode="modal"

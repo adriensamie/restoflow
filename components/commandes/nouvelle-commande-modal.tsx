@@ -1,8 +1,16 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { X, Loader2, Plus, Trash2 } from 'lucide-react'
+import { useState, useTransition, useEffect, useRef } from 'react'
+import { X, Loader2, Plus, Trash2, Check } from 'lucide-react'
 import { creerCommande } from '@/lib/actions/commandes'
+
+interface Produit {
+  produit_id: string
+  nom: string
+  categorie: string | null
+  unite: string
+  quantite_actuelle: number | null
+}
 
 interface Ligne {
   produit_id: string
@@ -30,6 +38,31 @@ export function NouvelleCommandeModal({ fournisseurs, blPreRempli, onClose }: Pr
   const [fournisseurId, setFournisseurId] = useState('')
   const [dateLivraison, setDateLivraison] = useState('')
   const [note, setNote] = useState('')
+  const [allProduits, setAllProduits] = useState<Produit[]>([])
+  const [openDropdown, setOpenDropdown] = useState<number | null>(null)
+  const dropdownRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  // Charger les produits depuis l'API au montage
+  useEffect(() => {
+    fetch('/api/stocks/produits')
+      .then(res => res.json())
+      .then((data: Produit[]) => setAllProduits(data))
+      .catch(() => {})
+  }, [])
+
+  // Fermer le dropdown au clic extérieur
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (openDropdown !== null) {
+        const ref = dropdownRefs.current[openDropdown]
+        if (ref && !ref.contains(e.target as Node)) {
+          setOpenDropdown(null)
+        }
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [openDropdown])
 
   // Pré-remplir depuis le BL analysé
   const [lignes, setLignes] = useState<Ligne[]>(() => {
@@ -50,6 +83,21 @@ export function NouvelleCommandeModal({ fournisseurs, blPreRempli, onClose }: Pr
   const updateLigne = (i: number, key: string, value: string | number) =>
     setLignes(l => l.map((item, idx) => idx === i ? { ...item, [key]: value } : item))
 
+  const getFilteredProduits = (search: string) => {
+    if (!search.trim()) return allProduits.slice(0, 10)
+    const lower = search.toLowerCase()
+    return allProduits.filter(p => p.nom.toLowerCase().includes(lower)).slice(0, 10)
+  }
+
+  const selectProduit = (lineIdx: number, produit: Produit) => {
+    setLignes(l => l.map((item, idx) =>
+      idx === lineIdx
+        ? { ...item, produit_id: produit.produit_id, nom: produit.nom, unite: produit.unite }
+        : item
+    ))
+    setOpenDropdown(null)
+  }
+
   const totalHT = lignes.reduce((acc, l) => acc + l.quantite_commandee * (l.prix_unitaire ?? 0), 0)
 
   const handleSubmit = () => {
@@ -60,9 +108,13 @@ export function NouvelleCommandeModal({ fournisseurs, blPreRempli, onClose }: Pr
     }
     const lignesAvecProduit = lignes.filter(l => l.produit_id)
     if (lignesAvecProduit.length === 0) {
-      setError('Aucune ligne n\'est liée à un produit existant. Associez au moins un produit.')
+      setError('Aucune ligne n\'est liée à un produit existant. Sélectionnez un produit depuis la liste déroulante.')
       return
     }
+    const lignesSansProduit = lignes.filter(l => l.nom.trim() && !l.produit_id)
+    const warningMsg = lignesSansProduit.length > 0
+      ? `${lignesSansProduit.length} ligne(s) non liée(s) seront ignorées.`
+      : ''
     setError('')
 
     startTransition(async () => {
@@ -70,7 +122,7 @@ export function NouvelleCommandeModal({ fournisseurs, blPreRempli, onClose }: Pr
         await creerCommande({
           fournisseur_id: fournisseurId,
           date_livraison_prevue: dateLivraison || undefined,
-          note: note || undefined,
+          note: [note, warningMsg].filter(Boolean).join(' — ') || undefined,
           lignes: lignesAvecProduit.map(l => ({
             produit_id: l.produit_id,
             quantite_commandee: l.quantite_commandee,
@@ -147,10 +199,49 @@ export function NouvelleCommandeModal({ fournisseurs, blPreRempli, onClose }: Pr
               {lignes.map((ligne, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 px-3 py-2 items-center"
                   style={{ background: i % 2 === 0 ? '#0d1526' : '#0a1120', borderTop: '1px solid #1a2540' }}>
-                  <input className="col-span-4 px-2 py-1.5 rounded text-sm outline-none"
-                    style={inputStyle} placeholder="Nom produit"
-                    value={ligne.nom}
-                    onChange={e => updateLigne(i, 'nom', e.target.value)} />
+                  <div className="col-span-4 relative" ref={el => { dropdownRefs.current[i] = el }}>
+                    <div className="flex items-center gap-1">
+                      <input className="flex-1 px-2 py-1.5 rounded text-sm outline-none"
+                        style={inputStyle} placeholder="Rechercher un produit..."
+                        value={ligne.nom}
+                        onChange={e => {
+                          const val = e.target.value
+                          setLignes(l => l.map((item, idx) =>
+                            idx === i ? { ...item, nom: val, produit_id: '' } : item
+                          ))
+                          setOpenDropdown(i)
+                        }}
+                        onFocus={() => setOpenDropdown(i)} />
+                      {ligne.produit_id && (
+                        <span title="Produit lié" className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full"
+                          style={{ background: '#065f46', color: '#34d399' }}>
+                          <Check size={12} />
+                        </span>
+                      )}
+                    </div>
+                    {openDropdown === i && (
+                      <div className="absolute z-50 left-0 right-0 top-full mt-1 rounded-lg overflow-hidden shadow-xl max-h-48 overflow-y-auto"
+                        style={{ background: '#0d1526', border: '1px solid #1e2d4a' }}>
+                        {getFilteredProduits(ligne.nom).length > 0 ? (
+                          getFilteredProduits(ligne.nom).map(p => (
+                            <button key={p.produit_id} type="button"
+                              className="w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:brightness-125"
+                              style={{ color: '#e2e8f0', background: p.produit_id === ligne.produit_id ? '#1e2d4a' : 'transparent', borderBottom: '1px solid #1a2540' }}
+                              onClick={() => selectProduit(i, p)}>
+                              <span className="truncate">{p.nom}</span>
+                              <span className="text-xs flex-shrink-0 ml-2" style={{ color: '#4a6fa5' }}>
+                                {p.categorie ?? ''} · {p.unite}
+                              </span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-xs" style={{ color: '#4a6fa5' }}>
+                            Aucun produit trouvé — saisie libre
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <input type="number" min="0" step="0.1"
                     className="col-span-2 px-2 py-1.5 rounded text-sm outline-none"
                     style={inputStyle} value={ligne.quantite_commandee}

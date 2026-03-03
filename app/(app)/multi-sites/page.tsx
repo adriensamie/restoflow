@@ -1,12 +1,10 @@
-import { hasAccess } from '@/lib/billing'
-import { redirect } from 'next/navigation'
+import { requireAccess } from '@/lib/billing'
 import { MultiSitesClient } from '@/components/multi-sites/multi-sites-client'
 import { requireRouteAccess } from '@/lib/require-route-access'
 
 export default async function MultiSitesPage() {
   await requireRouteAccess('/multi-sites')
-  const allowed = await hasAccess('multi_sites')
-  if (!allowed) redirect('/billing')
+  await requireAccess('multi_sites')
 
   return (
     <div className="max-w-6xl mx-auto">

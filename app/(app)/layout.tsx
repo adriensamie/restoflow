@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
+import { SidebarProvider } from '@/components/layout/sidebar-provider'
 import { TrialBanner } from '@/components/billing/trial-banner'
 import { ExpiredBanner } from '@/components/billing/expired-banner'
 import { getCurrentStaff, getAllowedRoutes } from '@/lib/rbac'
@@ -214,23 +215,25 @@ async function AppShell({ children, clerkOrgId }: { children: React.ReactNode; c
   }
 
   return (
-    <div className="flex h-screen" style={{ background: '#080d1a' }}>
-      <Sidebar plan={billing.plan} role={role} allowedRoutes={allowedRoutes} />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        {billing.isTrialExpired && (
-          <ExpiredBanner reason="trial_expired" />
-        )}
-        {billing.subscriptionStatus === 'past_due' && (
-          <ExpiredBanner reason="past_due" />
-        )}
-        {billing.plan === 'trial' && !billing.isTrialExpired && billing.daysLeft !== null && (
-          <TrialBanner daysLeft={billing.daysLeft} />
-        )}
-        <Header role={role} staffName={staff ? `${staff.prenom} ${staff.nom}`.trim() : ''} />
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
-        </main>
+    <SidebarProvider>
+      <div className="flex h-screen" style={{ background: '#080d1a' }}>
+        <Sidebar plan={billing.plan} role={role} allowedRoutes={allowedRoutes} />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {billing.isTrialExpired && (
+            <ExpiredBanner reason="trial_expired" />
+          )}
+          {billing.subscriptionStatus === 'past_due' && (
+            <ExpiredBanner reason="past_due" />
+          )}
+          {billing.plan === 'trial' && !billing.isTrialExpired && billing.daysLeft !== null && (
+            <TrialBanner daysLeft={billing.daysLeft} />
+          )}
+          <Header role={role} staffName={staff ? `${staff.prenom} ${staff.nom}`.trim() : ''} />
+          <main className="flex-1 overflow-y-auto p-4 md:p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   )
 }

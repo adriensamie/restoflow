@@ -1,9 +1,11 @@
 import { PrevisionsClient } from '@/components/previsions/previsions-client'
 import { requireRouteAccess } from '@/lib/require-route-access'
+import { requireAccess } from '@/lib/billing'
 import { getPageContext } from '@/lib/page-context'
 
 export default async function PrevisionsPage() {
   await requireRouteAccess('/previsions')
+  await requireAccess('previsions_ia')
   const { supabase, orgId } = await getPageContext()
 
   const [{ data: previsions }, { data: snapshots }, { data: produits }] = await Promise.all([

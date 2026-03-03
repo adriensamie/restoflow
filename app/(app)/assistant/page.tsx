@@ -1,9 +1,11 @@
 import { AssistantClient } from '@/components/assistant/assistant-client'
 import { requireRouteAccess } from '@/lib/require-route-access'
+import { requireAccess } from '@/lib/billing'
 import { getPageContext } from '@/lib/page-context'
 
 export default async function AssistantPage() {
   await requireRouteAccess('/assistant')
+  await requireAccess('assistant_ia')
   const { supabase, orgId } = await getPageContext()
 
   const { data: org } = await supabase

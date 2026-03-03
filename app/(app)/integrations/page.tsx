@@ -1,9 +1,11 @@
 import { IntegrationsClient } from '@/components/integrations/integrations-client'
 import { requireRouteAccess } from '@/lib/require-route-access'
+import { requireAccess } from '@/lib/billing'
 import { getPageContext } from '@/lib/page-context'
 
 export default async function IntegrationsPage() {
   await requireRouteAccess('/integrations')
+  await requireAccess('integrations')
   const { supabase, orgId } = await getPageContext()
 
   const { data: configCaisse } = await supabase

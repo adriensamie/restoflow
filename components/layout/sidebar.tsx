@@ -9,11 +9,13 @@ import {
   FileText, AlertTriangle, Settings, PlugZap,
   TrendingDown, TrendingUp, Sparkles, Bot, Wine,
   Shield, Lock, CreditCard, Building2, BarChart3,
+  X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Plan, Feature } from '@/lib/plans'
 import { PLAN_FEATURES } from '@/lib/plans'
 import { UpgradeModal } from '@/components/billing/upgrade-modal'
+import { useSidebar } from '@/components/layout/sidebar-provider'
 
 interface NavItem {
   href: string
@@ -83,7 +85,17 @@ function getRequiredPlan(feature: Feature): string {
   return 'Enterprise'
 }
 
-export function Sidebar({ plan = 'trial' as Plan, role = 'patron', allowedRoutes = ['*'] }: { plan?: Plan; role?: string; allowedRoutes?: string[] }) {
+function SidebarContent({
+  plan,
+  role,
+  allowedRoutes,
+  onNavClick,
+}: {
+  plan: Plan
+  role: string
+  allowedRoutes: string[]
+  onNavClick?: () => void
+}) {
   const pathname = usePathname()
   const [upgradeModal, setUpgradeModal] = useState<{ feature: string; requiredPlan: string } | null>(null)
 
@@ -91,87 +103,86 @@ export function Sidebar({ plan = 'trial' as Plan, role = 'patron', allowedRoutes
 
   return (
     <>
-      <aside className="w-56 flex flex-col flex-shrink-0" style={{ background: '#0a0f1e', borderRight: '1px solid #1e2d4a' }}>
-        {/* Logo */}
-        <div className="px-4 py-5" style={{ borderBottom: '1px solid #1e2d4a' }}>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}>
-              <UtensilsCrossed size={15} className="text-white" />
-            </div>
-            <span className="font-bold text-white tracking-tight">RestoFlow</span>
+      {/* Logo */}
+      <div className="px-4 py-5" style={{ borderBottom: '1px solid #1e2d4a' }}>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}>
+            <UtensilsCrossed size={15} className="text-white" />
           </div>
+          <span className="font-bold text-white tracking-tight">RestoFlow</span>
         </div>
+      </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2">
-          {navGroups.map((group) => (
-            <div key={group.label} className="mb-4">
-              <p className="px-3 mb-1 text-xs font-semibold uppercase tracking-wider"
-                style={{ color: '#3b5280' }}>
-                {group.label}
-              </p>
-              <ul className="space-y-0.5">
-                {group.items.map((item) => {
-                  const Icon = item.icon
-                  const isLocked = item.feature && !allowedFeatures.includes(item.feature)
-                  const isHiddenByRole = role !== 'patron' && !allowedRoutes.includes('*') && !allowedRoutes.includes(item.href)
-                  const isActive = pathname === item.href ||
-                    (item.href !== '/dashboard' && pathname.startsWith(item.href))
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto py-3 px-2">
+        {navGroups.map((group) => (
+          <div key={group.label} className="mb-4">
+            <p className="px-3 mb-1 text-xs font-semibold uppercase tracking-wider"
+              style={{ color: '#3b5280' }}>
+              {group.label}
+            </p>
+            <ul className="space-y-0.5">
+              {group.items.map((item) => {
+                const Icon = item.icon
+                const isLocked = item.feature && !allowedFeatures.includes(item.feature)
+                const isHiddenByRole = role !== 'patron' && !allowedRoutes.includes('*') && !allowedRoutes.includes(item.href)
+                const isActive = pathname === item.href ||
+                  (item.href !== '/dashboard' && pathname.startsWith(item.href))
 
-                  if (isHiddenByRole) return null
+                if (isHiddenByRole) return null
 
-                  if (isLocked) {
-                    return (
-                      <li key={item.href}>
-                        <button
-                          onClick={() => setUpgradeModal({
-                            feature: item.label,
-                            requiredPlan: getRequiredPlan(item.feature!),
-                          })}
-                          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm w-full text-left opacity-50 hover:opacity-70 transition-opacity"
-                          style={{ color: '#4a6180' }}
-                        >
-                          <Icon size={15} />
-                          <span className="flex-1">{item.label}</span>
-                          <Lock size={12} />
-                        </button>
-                      </li>
-                    )
-                  }
-
+                if (isLocked) {
                   return (
                     <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150',
-                          isActive ? 'text-white font-medium' : 'hover:text-white'
-                        )}
-                        style={isActive ? {
-                          background: 'linear-gradient(90deg, #1d3a7a, #1e2d4a)',
-                          color: '#60a5fa',
-                          borderLeft: '2px solid #3b82f6',
-                        } : {
-                          color: '#6b8cc7',
-                        }}
+                      <button
+                        onClick={() => setUpgradeModal({
+                          feature: item.label,
+                          requiredPlan: getRequiredPlan(item.feature!),
+                        })}
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm w-full text-left opacity-50 hover:opacity-70 transition-opacity"
+                        style={{ color: '#4a6180' }}
                       >
                         <Icon size={15} />
-                        {item.label}
-                      </Link>
+                        <span className="flex-1">{item.label}</span>
+                        <Lock size={12} />
+                      </button>
                     </li>
                   )
-                })}
-              </ul>
-            </div>
-          ))}
-        </nav>
+                }
 
-        {/* Version */}
-        <div className="px-4 py-3" style={{ borderTop: '1px solid #1e2d4a' }}>
-          <p className="text-xs" style={{ color: '#2d4a7a' }}>RestoFlow v2.0</p>
-        </div>
-      </aside>
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={onNavClick}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150',
+                        isActive ? 'text-white font-medium' : 'hover:text-white'
+                      )}
+                      style={isActive ? {
+                        background: 'linear-gradient(90deg, #1d3a7a, #1e2d4a)',
+                        color: '#60a5fa',
+                        borderLeft: '2px solid #3b82f6',
+                      } : {
+                        color: '#6b8cc7',
+                      }}
+                    >
+                      <Icon size={15} />
+                      {item.label}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ))}
+      </nav>
+
+      {/* Version */}
+      <div className="px-4 py-3" style={{ borderTop: '1px solid #1e2d4a' }}>
+        <p className="text-xs" style={{ color: '#2d4a7a' }}>RestoFlow v2.0</p>
+      </div>
 
       {upgradeModal && (
         <UpgradeModal
@@ -180,6 +191,51 @@ export function Sidebar({ plan = 'trial' as Plan, role = 'patron', allowedRoutes
           onClose={() => setUpgradeModal(null)}
         />
       )}
+    </>
+  )
+}
+
+export function Sidebar({ plan = 'trial' as Plan, role = 'patron', allowedRoutes = ['*'] }: { plan?: Plan; role?: string; allowedRoutes?: string[] }) {
+  const { isOpen, close } = useSidebar()
+
+  return (
+    <>
+      {/* Desktop sidebar - always visible on md+ */}
+      <aside className="hidden md:flex w-56 flex-col flex-shrink-0" style={{ background: '#0a0f1e', borderRight: '1px solid #1e2d4a' }}>
+        <SidebarContent plan={plan} role={role} allowedRoutes={allowedRoutes} />
+      </aside>
+
+      {/* Mobile sidebar - overlay */}
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40 md:hidden"
+            style={{ background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(2px)' }}
+            onClick={close}
+          />
+          {/* Slide-in panel */}
+          <aside
+            className="fixed inset-y-0 left-0 z-50 w-64 flex flex-col md:hidden"
+            style={{
+              background: '#0a0f1e',
+              borderRight: '1px solid #1e2d4a',
+              animation: 'slideInLeft 0.2s ease-out',
+            }}
+          >
+            {/* Close button at top-right of sidebar */}
+            <button
+              onClick={close}
+              className="absolute top-4 right-4 p-1 rounded-lg"
+              style={{ color: '#4a6180' }}
+            >
+              <X size={20} />
+            </button>
+            <SidebarContent plan={plan} role={role} allowedRoutes={allowedRoutes} onNavClick={close} />
+          </aside>
+        </>
+      )}
+
     </>
   )
 }

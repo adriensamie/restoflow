@@ -1,9 +1,11 @@
 import { CaveClient } from '@/components/cave/cave-client'
 import { requireRouteAccess } from '@/lib/require-route-access'
+import { requireAccess } from '@/lib/billing'
 import { getPageContext } from '@/lib/page-context'
 
 export default async function CavePage() {
   await requireRouteAccess('/cave')
+  await requireAccess('cave')
   const { supabase, orgId } = await getPageContext()
 
   const { data: vins } = await supabase

@@ -1,9 +1,11 @@
 import { AntifraudClient } from '@/components/antifraud/antifraud-client'
 import { requireRouteAccess } from '@/lib/require-route-access'
+import { requireAccess } from '@/lib/billing'
 import { getPageContext } from '@/lib/page-context'
 
 export default async function AntifraudPage() {
   await requireRouteAccess('/antifraud')
+  await requireAccess('antifraud')
   const { supabase, orgId } = await getPageContext()
 
   const debut = new Date()

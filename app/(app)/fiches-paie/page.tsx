@@ -1,9 +1,11 @@
 import { FichesPaieClient } from '@/components/equipe/fiches-paie-client'
 import { requireRouteAccess } from '@/lib/require-route-access'
+import { requireAccess } from '@/lib/billing'
 import { getPageContext } from '@/lib/page-context'
 
 export default async function FichesPaiePage() {
   await requireRouteAccess('/fiches-paie')
+  await requireAccess('fiches_paie')
   const { supabase, orgId } = await getPageContext()
 
   const moisCourant = new Date().toISOString().slice(0, 7) + '-01'
